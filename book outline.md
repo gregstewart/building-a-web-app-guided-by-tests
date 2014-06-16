@@ -50,6 +50,10 @@ NPM will allow us to resolve all of the dependencies we need in order to achieve
 #### Bower ####
 [Bower](http://bower.io/) is handy tool to manage your front end library dependencies, so I recommed installing it as well. 
 
+#### Grunt ####
+[Grunt](http://gruntjs.com/) 
+
+
 With that it's time to get started!
 
 ## Getting started ##
@@ -76,9 +80,6 @@ Let's commit this change quickly:
 	
 	git add .gitignore
 	git commit -m "Adding folders to the ignore list"
-
-### writing our first functional test ###
-I order to write our first functional test we need a test page and we'll be using a static version of the page we will be buildingas our starting point.
 
 From a folder perspective I like to create a distribution folder and an app folder to hold the source, so let's go ahead and add these folders as well.
 	
@@ -157,7 +158,10 @@ Serve content from dist folder
 Edit the index.html file
 
 
-bower, cucumber, selenium, web server
+### writing our first functional test ###
+I order to write our first functional test we need a test page and we'll be using a static version of the page we will be building as our starting point.
+
+cucumber, selenium, web server
 
 ###setting up our ci environment using codeship###
  * deploy to heroku
