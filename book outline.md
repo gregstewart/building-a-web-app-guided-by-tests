@@ -145,21 +145,214 @@ You may have noticed that I decided not to add this package to our bower.json fi
 	mv bower_components/html5-boilerplate/*.ico app/
 	mv bower_components/html5-boilerplate/*.txt app/
 
-Netx steps:
-Delete css/normalize.css and main.css
-Add main.scss and add the following line:
-	@import '../../bower_components/bootstrap-sass-official/vendor/assets/stylesheets/bootstrap.scss';
-Delete js folder
-Some web server
+In your favourite editor open up the app/index.html file and add the following:
 
-Grunt task to generate css from sass
-Grunt copy assets to dist/
-Serve content from dist folder
-Edit the index.html file
+	<!DOCTYPE html>
+	<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+	<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+	<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+	<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+    	<head>
+        	<meta charset="utf-8">
+        	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+        	<title>Weatherly - Forecast for London</title>
+        	<meta name="description" content="">
+    	    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+	        <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
+
+        	<link rel="stylesheet" href="css/main.css">
+    	</head>
+    	<body>
+        	<!--[if lt IE 7]>
+            	<p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
+        	<![endif]-->
+
+        	<!-- Add your site or application content here -->
+        	<div class="container">
+            	<div class="header">
+                	<ul class="nav nav-pills pull-right">
+                    	<li class="active"><a href="#">Home</a></li>
+                    	<li><a href="#">About</a></li>
+                   		<li><a href="#">Contact</a></li>
+                	</ul>
+                	<h3 class="text-muted">test</h3>
+            	</div>
+
+            	<div class="jumbotron">
+                	<h1>London Right Now</h1>
+                	<p><span class="glyphicon glyphicon-ok">Weather Icon</span> 14 degrees</p>
+                	<p>Mostly cloudy - feels like 14 degrees</p>
+            	</div>
+
+            	<div class="row marketing">
+                	<div class="col-lg-6">
+                    	<h4>NEXT HOUR</h4>
+                    	<p>Mostly cloudy for the hour.</p>
+
+                    	<h4>NEXT 24 HOURS</h4>
+                   		<p>Mostly cloudy until tomorrow afternoon.</p>
+                	</div>
+            	</div>
+
+            	<div class="footer">
+                	<p><span class="glyphicon glyphicon-heart"></span> from Weatherly</p>
+            	</div>
+
+        	</div>
+        	<p></p>
+
+        	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+        	<script>window.jQuery || document.write('<script src="js/vendor/jquery-1.10.2.min.js"><\/script>')</script>
+
+        	<!-- Google Analytics: change UA-XXXXX-X to be your site's ID. -->
+        	<script>
+            	(function(b,o,i,l,e,r){b.GoogleAnalyticsObject=l;b[l]||(b[l]=
+                   	 function(){(b[l].q=b[l].q||[]).push(arguments)});b[l].l=+new Date;
+                	e=o.createElement(i);r=o.getElementsByTagName(i)[0];
+                	e.src='//www.google-analytics.com/analytics.js';
+                	r.parentNode.insertBefore(e,r)}(window,document,'script','ga'));
+            	ga('create','UA-XXXXX-X');ga('send','pageview');
+        	</script>
+    	</body>
+	</html>
+
+If you open up the file in your browser you should see something like this hopefully:
+
+![Rendered HTML](Screenshot 2014-06-18 23.19.42.png)
+
+Not exactly something to write home about, but it's enough for us to get started setting up our little server, writing a functional test and deploying something to our Heroku instance.
+
+We'll make this a lot prettier later on in the book when we deal with setting up Grunt to build our JavaScript and CSS assets.
+
+The last thing we'll do is commit all of our changes to our local repos:
+
+	git add .
+	git commit -m "Added Bootstrap/Modernizr to bower.json, moved the skeleton of the HTML5 boilerplate to the app folder and created a base index page for our weather forecat app."
+
+At this stage it's a good idea to also push the changes to our remote repository. If you have followed the [What you will need section]("What you will need section"), you will hopefully have created a Github account. If not go ahead and to that now. Then create a repository called weatherly, here's what I entered:
+
+![Creating your weatherly repository](Screenshot 2014-06-18 23.35.50.png)
+
+To push our changes to the remote repository, you will need to tell your local repo where it is:
+
+	git remote add origin https://github.com/<account_name>/weatherly.git
+
+Now you can push your changes:
+
+	git push -u origin master
+	
+###Recap###
+Before we move on let's just quickly recap what we have done so far:
+
+* created our app folder structure
+* initialised our git repo
+* created a Git ignore file
+* used bower to manage some of our front end dependencies:
+	* Bootstrap
+	* Modernizr
+	* HTML5 boilerplate
+* created a very basic index.html page
+* pushed all of the changes to our remote git repository
 
 
-### writing our first functional test ###
-I order to write our first functional test we need a test page and we'll be using a static version of the page we will be building as our starting point.
+## Writing our first functional test ##
+I order to write our first functional test we needed a test page, which we built in the previous section. Now let's set up a simple Node.js webserver.
+
+### Web server ###
+A good practice to follow while working with Git is to create a branch for each feature that you are working on. 
+	
+	git checkout -b web-server
+	
+Make sure you are in the root of our project and not in the `app/` folder
+
+Since we'll be using Node.js we can use NPM to manage the dependencies. These dependencies are stored in a folder called node_modules. Since we don't want to check any node modules/packages into our repository we added that folder to our `.gitignore` file in when we set up the project. If we don't add those packages to our repository you may be wondering how our CI and Heroku instance will now how to run the app. To that end we'll use a handy file called `package.json`. When we run NPM we can not only install dependencies, we can also add them to our `package.json` file and our target envinronments can read this file and install these packages for us.
+
+Typing `npm init` give us a way to create our package.json, here's what I answered when prompted:
+
+	This utility will walk you through creating a package.json file.
+	It only covers the most common items, and tries to guess sane defaults.
+
+	See `npm help json` for definitive documentation on these fields
+	and exactly what they do.
+
+	Use `npm install <pkg> --save` afterwards to install a package and
+	save it as a dependency in the package.json file.
+
+	Press ^C at any time to quit.
+	name: (weatherly) 
+	version: (0.0.0) 
+	description: Building a web app guided by tests
+	entry point: (index.js) 
+	test command: grunt test
+	git repository: (https://github.com/gregstewart/weatherly.git) 
+	keywords: 
+	author: Greg Stewart
+	license: (ISC) MIT
+	About to write to /Users/gregstewart/Projects/github/weatherly/package.json:
+
+	{
+  		"name": "weatherly",
+  		"version": "0.0.0",
+  		"description": "Building a web app guided by tests",
+  		"main": "index.js",
+  		"scripts": {
+    		"test": "grunt test"
+  		},
+  		"repository": {
+    		"type": "git",
+    		"url": "https://github.com/gregstewart/weatherly.git"
+  		},
+  		"author": "Greg Stewart",
+  		"license": "MIT",
+  		"bugs": {
+    		"url": "https://github.com/gregstewart/weatherly/issues"
+  		},
+	  	"homepage": "https://github.com/gregstewart/weatherly"
+	}
+	
+	Is this ok? (yes) yes
+
+As you can see it autocompleted a bunch of information for you, such as the project name, version number and Git details. Let's add that file to our repo before going any further:
+
+	git add package.json
+	git commit -m "Created package.json file"
+
+Now let's go ahead and install a web server module. We could use [express](http://expressjs.com/), but our purposes it's overkill, so we'll just use [connect](http://www.senchalabs.org/connect/).
+
+	npm install connect --save
+	
+By specifying `--save` the dependecy was added to our `package.json` file, if you open it up you should see the following toward the end of the file:
+
+	"dependencies": {
+   		"connect": "^2.19.6"
+  	}
+
+Next create a new file called `server.js` in the root of our project and add the following content:
+
+	var connect = require('connect');
+	connect().use(connect.static(__dirname)).listen(3000);
+
+And to start our server type:
+
+	node server.js
+
+If you now open your browser and hit `http://localhost:3000/app/index.html` you should once again see: 
+
+![Rendered HTML hosted by our Connect server](Screenshot 2014-06-18 23.19.42.png)
+
+The process that runs our server is not daemonised and will continue to run until we close the console or type `^C`. Go ahead and kill the server and add those changes to our repository, merge these changes back into master and finally push to origin:
+
+	git add server.js
+	git add package.json
+	git commit -m "Installed Connect and created a very basic web server for our app"
+	git checkout master
+	git merge web-server
+	git push
+
+### Cucumber and Selenium ###
+
+### Our first test ###
 
 cucumber, selenium, web server
 
@@ -180,6 +373,18 @@ cucumber, selenium, web server
  * react for template rendering
  * bake in performance testing
 
+#TODO#
+Netx steps:
+Delete css/normalize.css and main.css
+Add main.scss and add the following line:
+	@import '../../bower_components/bootstrap-sass-official/vendor/assets/stylesheets/bootstrap.scss';
+Delete js folder
+Some web server
+
+Grunt task to generate css from sass
+Grunt copy assets to dist/
+Serve content from dist folder
+Edit the index.html file
 
 
 ## Appendices ##
