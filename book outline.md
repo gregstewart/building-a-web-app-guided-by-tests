@@ -318,26 +318,32 @@ As you can see it autocompleted a bunch of information for you, such as the proj
 	git add package.json
 	git commit -m "Created package.json file"
 
-Now let's go ahead and install a web server module. We could use [express](http://expressjs.com/), but our purposes it's overkill, so we'll just use [connect](http://www.senchalabs.org/connect/).
+Now let's go ahead and install a web server module. We'll just use [express](http://expressjs.com/).
 
-	npm install connect --save
+	npm install express --save
 	
 By specifying `--save` the dependecy was added to our `package.json` file, if you open it up you should see the following toward the end of the file:
 
 	"dependencies": {
-   		"connect": "^2.19.6"
+   		"express": "^4.4.5"
   	}
 
 Next create a new file called `server.js` in the root of our project and add the following content:
 
-	var connect = require('connect');
-	connect().use(connect.static(__dirname)).listen(3000);
+	var express = require('express');
+	var app = express();
+
+	app.use(express.static(__dirname + '/app'));
+
+	var server = app.listen(3000, function() {
+	  console.log('Listening on port %d', server.address().port);
+	});
 
 And to start our server type:
 
-	node server.js
+	npm start
 
-If you now open your browser and hit `http://localhost:3000/app/index.html` you should once again see: 
+If you now open your browser and hit `http://localhost:3000` you should once again see: 
 
 ![Rendered HTML hosted by our Connect server](Screenshot 2014-06-18 23.19.42.png)
 
@@ -349,12 +355,80 @@ The process that runs our server is not daemonised and will continue to run unti
 	git checkout master
 	git merge web-server
 	git push
+	
+### Cucumber, WebDriver and Selenium ###
+For our functional tests I have chosen [Cucumber.js](https://github.com/cucumber/cucumber-js) and [WebDriver.js](http://webdriver.io/) with [Selenium](http://docs.seleniumhq.org/). I chose this combination because I believe this will give you greater felxibility in the long wrong, especially if you plan on using different languagesin your toolchain. You can find Ruby, Java and .Net versions of Cucumber, WebDriver and Selenium.
 
-### Cucumber and Selenium ###
+####Selenium###
+
+> Selenium uses Java, so you will need to make sure you have it installed.
+
+We could install the binaries manually, but since I plan using Grunt to automate tasks around starting and stopping the server, we might as well use [grunt-selenium-webdriver] (https://www.npmjs.org/package/grunt-selenium-webdriver) module as this includes everything that we need, including the jar file for the Selenium Server. 
+
+	`npm install grunt-selenium-webdriver --save-dev`
+	
+We use the `--save-dev` flag to indicate that we want to add this dependency to our package.json file, however only for development purposes. With that done let's create a Grunt task to start the server (you can find more information on Grunt and tasks over at [the official Grunt.js website](http://gruntjs.com/getting-started)). The first thing we'll need is a `Gruntfile.js`, so add one to the root of your project and edit it to contain the following:
+
+	module.exports = function(grunt) {
+  		grunt.initConfig({
+  		});
+
+  		grunt.loadNpmTasks('grunt-selenium-webdriver');
+
+  		grunt.registerTask('e2e', [
+    		'selenium_start',
+    		'selenium_stop'
+  		]);
+	};
+
+Save the changes and at the command line type: `grunt e2e` and you should see something like this: 
+
+	Running "selenium_start" task
+	seleniumrc webdriver ready on 127.0.0.1:4444
+
+	Running "selenium_stop" task
+
+	Done, without errors.
+	
+This told grunt to execite a task called `e2e` and confirms that the selenium server started properly at the following address `127.0.0.1:4444` and then was shutdown again (apparently it is not necessary to shutdown the server with a stop task).
+
+#### Using Grunt to start and stop the server####
+Let's also add a step to stop and start our web server when we are running our frunctional tests. To that end we'll install another grunt module:
+
+	npm install grunt-express-server --save-dev
+
+And we'll edit our Grunt file so that it looks for our `server.js` and we can control the starting and stopping of our server:
+
+	module.exports = function(grunt) {
+  		grunt.initConfig({
+    		express: {
+      			test: {
+        			options: {
+          				script: './server.js'
+        			}
+      			}
+    		}
+  		});
+
+  		grunt.loadNpmTasks('grunt-express-server');
+  		grunt.loadNpmTasks('grunt-selenium-webdriver');
+
+  		grunt.registerTask('e2e', [
+    		'selenium_start',
+    		'express:test',
+    		'selenium_stop',
+    		'express:test:stop'
+  		]);
+	};
+
+####WebDriver####
+
 
 ### Our first test ###
 
-cucumber, selenium, web server
+[cucumber], [webdriver] selenium, web server
+
+[grunt task to stop start selenium](https://www.npmjs.org/package/grunt-selenium-webdriver)
 
 ###setting up our ci environment using codeship###
  * deploy to heroku
@@ -371,7 +445,7 @@ cucumber, selenium, web server
 * other
  * isomorphic apps
  * react for template rendering
- * bake in performance testing
+ * bake in performance testing (phantomas)
 
 #TODO#
 Netx steps:
