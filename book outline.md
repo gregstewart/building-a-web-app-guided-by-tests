@@ -181,7 +181,7 @@ In your favourite editor open up the app/index.html file and add the following:
 
             	<div class="jumbotron">
                 	<h1>London Right Now</h1>
-                	<p><span class="glyphicon glyphicon-ok">Weather Icon</span> 14 degrees</p>
+                	<p class="temperature">14 degrees</p>
                 	<p>Mostly cloudy - feels like 14 degrees</p>
             	</div>
 
@@ -420,15 +420,231 @@ And we'll edit our Grunt file so that it looks for our `server.js` and we can co
     		'express:test:stop'
   		]);
 	};
+	
+If you now run `grunt e2e`, you should see the following output:
+
+	Running "selenium_start" task
+	seleniumrc webdriver ready on 127.0.0.1:4444
+
+	Running "express:test" (express) task
+	Starting background Express server
+	Listening on port 3000
+
+	Running "selenium_stop" task
+
+	Running "express:test:stop" (express) task
 
 ####WebDriver####
+The next thing we need to do is install [WebDriver.js](http://webdriver.io/) and we are then nearly ready to write our first feature test:
 
+	npm install webdriverjs --save-dev
+
+
+#### Cucumber ####
+The final piece of the puzzle is [Cucumber.js](https://github.com/cucumber/cucumber-js):
+	
+	npm install cucumber --save-dev
 
 ### Our first test ###
 
-[cucumber], [webdriver] selenium, web server
+Features are written using the [Gherkin syntax](https://github.com/cucumber/cucumber/wiki/Gherkin), and this is what our first feature looks like:
 
-[grunt task to stop start selenium](https://www.npmjs.org/package/grunt-selenium-webdriver)
+	Feature: Using our awesome weather app
+		As a user of weatherly
+ 		I should be able to see the weather information for my location
+	
+		Scenario: Viewing the homepage
+    		Given I am on the home page
+    		When I view the main content area
+    		Then I should see the temperature for my location
+
+I like to store these and the associated code in a functional-tests directory. So go ahead and create that folder under the root of our app. Then create a features folder and save the above feature contents to a file called `using-weatherly.feature`.
+
+If we were to run our cucumber tests now using `cucumber.js functional-tests/features/using-weatherly.feature` we would see the following output:
+
+	UUU
+
+	1 scenario (1 undefined)
+	3 steps (3 undefined)
+
+	You can implement step definitions for undefined steps with these snippets:
+
+	this.Given(/^I am on the home page$/, function (callback) {
+  		// express the regexp above with the code you wish you had
+  		callback.pending();
+	});
+
+	this.When(/^I view the main content area$/, function (callback) {
+  		// express the regexp above with the code you wish you had
+  		callback.pending();
+	});
+
+	this.Then(/^I should see the temperature for my location$/, function (callback) {
+  		// express the regexp above with the code you wish you had
+  		callback.pending();
+	});
+
+This is extremely useful output. While it's clear that the code to execute the steps in the feature are undefined, the output actually gives snippets to create our step definitions. So let's go ahead and create our step definition. Inside of our functional test folder, create a `steps` folder and add a file called `using-weather-steps.js` with the following content:
+
+	var UsingWeatherlyStepDefinitions = function () {
+
+    	this.Given(/^I am on the home page$/, function (callback) {
+      		// express the regexp above with the code you wish you had
+      		callback.pending();
+    	});
+
+    	this.When(/^I view the main content area$/, function (callback) {
+      		// express the regexp above with the code you wish you had
+      		callback.pending();
+    	});
+    
+    	this.Then(/^I should see the temperature for my location$/, function (callback) {
+      		// express the regexp above with the code you wish you had
+      		callback.pending();
+    	});       
+	};
+
+	module.exports = UsingWeatherlyStepDefinitions;
+	
+Let's try and execute our feature test again with `cucumber.js functional-tests/features/using-weatherly.feature --require functional-tests/steps/using-weatherly-step-definitions.js` and now we should see:
+
+	P--
+
+	1 scenario (1 pending)
+	3 steps (1 pending, 2 skipped)
+
+Time to flesh out the steps to do some work and check for elements on the page while the tests are running. We'll make use of [Chai.js](http://chaijs.com/) as our assertion library, so let's go ahead and install this module:
+
+	npm install chai --save-dev
+
+The first bit of code we'll add to our tests is a [World object](https://github.com/cucumber/cucumber-js#world), which willl initialise our browser (read WebDriver) and add a few helper methods (`visit` and `hasText`). As our browser we are using phantomjs, but if you would like to see the test running simply replace `browserName: 'phantomjs'` with say `browserName: 'firefox'`.
+
+> Note that other browsers such as Chrome and IE require special drivers which you can download from the [Selenium website](http://docs.seleniumhq.org/)
+
+Here's our world object (`world.js`), which we save into a folder called support under `functional-tests`:
+
+	var webdriverjs = require('webdriverjs');
+	var expect = require('chai').expect;
+	var assert = require('chai').assert;
+
+	var client = webdriverjs.remote({ desiredCapabilities: {browserName: 'phantomjs'}, logLevel: 'silent' });
+
+	client.addCommand('hasText', function (selector, text, callback) {
+  		this.getText(selector, function (error, result) {
+    		expect(result).to.have.string(text);
+    		callback();
+  		});
+	});
+
+	client.init();
+
+
+	var World = function World(callback) {
+  		this.browser = client;
+
+  		this.visit = function(url, callback) {
+    		this.browser.url(url, callback);
+  		};
+
+  		callback(); // tell Cucumber we're finished and to use 'this' as the world instance
+	};
+
+	exports.World = World;
+
+Now let's re-visit our `using-weatherly-step-definitions.js` and replace the contents with the following code:
+
+	var UsingWeatherlyStepDefinitions = function () {
+    	this.World = require("../support/world.js").World;
+
+	    this.Given(/^I am on the home page$/, function (callback) {
+      		this.visit('http://localhost:3000/', callback);
+    	});
+
+    	this.When(/^I view the main content area$/, function (callback) {
+      		this.browser.hasText('.jumbotron h1', 'London Right Now', callback);
+    	});
+
+    	this.Then(/^I should see the temperature for my location$/, function (callback) {
+      		this.browser.hasText('p.temperature', '14 degrees', callback);
+    	});
+	};
+
+	module.exports = UsingWeatherlyStepDefinitions;
+
+The first step opens the site, and then we assert that the header element displays `London Right Now` and that the element with our temperature shows `14 degrees`
+
+If we were to once again try and execute our feature test, we would get an error telling us that it can't connect to the selenium server. So let's wrap all of this into our e2e grunt task. Let's start by adding another module to our setup:
+	
+	npm install grunt-cucumber --save-dev
+
+And let's edit our `Gruntfile.js` to look like this now:
+
+	module.exports = function(grunt) {
+  		grunt.initConfig({
+    		express: {
+      			test: {
+        			options: {
+          				script: './server.js'
+        			}
+      			}
+    		},
+    		cucumberjs: {
+      			src: 'functional-tests/features/',
+      			options: {
+        			steps: 'functional-tests/steps/'
+      			}
+    		}
+  		});
+
+  		grunt.loadNpmTasks('grunt-express-server');
+  		grunt.loadNpmTasks('grunt-selenium-webdriver');
+  		grunt.loadNpmTasks('grunt-cucumber');
+
+  		grunt.registerTask('e2e', [
+    		'selenium_start',
+    		'express:test',
+    		'cucumberjs',
+    		'selenium_stop',
+    		'express:test:stop'
+  		]);
+	};
+
+Now type `grunt e2e` and you should see the following output:
+
+	Running "selenium_start" task
+	seleniumrc webdriver ready on 127.0.0.1:4444
+
+	Running "express:test" (express) task
+	Starting background Express server
+	Listening on port 3000
+
+	Running "cucumberjs:src" (cucumberjs) task
+	...
+
+	1 scenario (1 passed)
+	3 steps (3 passed)
+
+	Running "selenium_stop" task
+
+	Running "express:test:stop" (express) task
+	Stopping Express server
+
+	Done, without errors.
+
+To sum things up in this section we created a set of grunt tasks that:
+
+* start our selenium server
+* start our express server that hosts our page
+* execute the features and steps we defined with cucumberjs
+* output the result to the console
+* closes down the services after finishing the tests
+
+We also wrote some feature tests that 
+
+* open a browser
+* check the contents for a header
+* check for an element that holds the current temperature
+
 
 ###setting up our ci environment using codeship###
  * deploy to heroku
