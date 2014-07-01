@@ -551,6 +551,17 @@ Here's our world object (`world.js`), which we save into a folder called support
 
 	exports.World = World;
 
+> Note if when running the tests you come across this message (logging in verbose mode here), this simply means that 
+> webdriverjs cannot find phatomjs in your PATH.
+>=======================================================================================
+>Selenium 2.0/webdriver protocol bindings implementation with helper commands in nodejs.
+>For a complete list of commands, visit http://webdriver.io/docs.html.
+>=======================================================================================
+>
+>[09:51:45]:  ERROR      Couldn't get a session ID - undefined
+>Fatal error: [init()] <=
+> An unknown server-side error occurred while processing the command.
+
 Now let's re-visit our `using-weatherly-step-definitions.js` and replace the contents with the following code:
 
 	var UsingWeatherlyStepDefinitions = function () {
