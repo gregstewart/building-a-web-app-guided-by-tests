@@ -27,11 +27,11 @@ There are few pre-requisits you will need to get this app built. You will need t
 ### Services you wil need to sign up for ###
 As I mentioned for our weather forecast API, we'll be using [forecast.io](https://developer.forecast.io/), so you might want to [go and sign up for a developer account](https://developer.forecast.io/register) as you will need a key to access the API.
 
+You should also sign up for a [Github](https://github.com/) or [Bitbucket](https://bitbucket.org/) account if you don't already have one, we'll need this for our CI service.
+
 So that we can reliably deploy our app, we'll make use of [Codeship's](https://www.codeship.io/) hosted Continuous Integration service. Sign up for the [free service] (https://www.codeship.io/pricing) to get started.
 
 To host our app we'll make use of [Heroku](https://www.heroku.com/) cloud computing service. They also [offer a free service](https://www.heroku.com/pricing) to help you get started.
-
-You should also sign up for a [Github](https://github.com/) or [Bitbucket](https://bitbucket.org/) account if you don't already have one, we'll need this for our CD service.
 
 That should cover the things you need to sign up for.
 
