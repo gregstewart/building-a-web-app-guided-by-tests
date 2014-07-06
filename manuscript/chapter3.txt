@@ -2,7 +2,7 @@
 I order to write our first functional test we needed a test page, which we built in the previous section. Now let's set up a simple Node.js webserver.
 
 ### Web server: Express ###
-A good practice to follow while working with Git is to create a branch for each feature that you are working on. 
+A good practice to follow while working with Git is to create a branch for each feature that you are working on, so let's go ahead and create a new branch for this item of work.
 	
 	git checkout -b web-server
 	
@@ -100,6 +100,10 @@ The process that runs our server is not daemonised and will continue to run unti
 	
 ### Cucumber, WebDriver and Selenium ###
 For our functional tests I have chosen [Cucumber.js](https://github.com/cucumber/cucumber-js) and [WebDriver.js](http://webdriver.io/) with [Selenium](http://docs.seleniumhq.org/). I chose this combination because I believe this will give you greater felxibility in the long wrong, especially if you plan on using different languagesin your toolchain. You can find Ruby, Java and .Net versions of Cucumber, WebDriver and Selenium.
+
+Once again we'll create a dedicated branch for this work:
+
+	git checkout -b functional-test
 
 ####Selenium###
 
@@ -293,7 +297,6 @@ Here's our world object (`world.js`), which we save into a folder called support
 
 	exports.World = World;
 
-
 Please note that if when running the tests you come across the message shown below (logging in verbose mode here), this simply (indeed simply...) means that webdriverjs cannot find phatomjs in your PATH.
 
 	====================================================================================
@@ -385,6 +388,14 @@ Now type `grunt e2e` and you should see the following output:
 	Stopping Express server
 
 	Done, without errors.
+	
+With that done we can commit our changes to our repository:
+
+	git add .
+	git commit -m "Scenario: Viewing the homepage, created and implemented"
+	git checkout master
+	git merge functional-test
+	git push
 
 ###Recap###
 To sum things up in this section we created a set of grunt tasks that:
