@@ -1,7 +1,7 @@
 ## Writing our first functional test ##
 I order to write our first functional test we needed a test page, which we built in the previous section. Now let's set up a simple Node.js webserver.
 
-### Web server ###
+### Web server: Express ###
 A good practice to follow while working with Git is to create a branch for each feature that you are working on. 
 	
 	git checkout -b web-server
@@ -386,6 +386,7 @@ Now type `grunt e2e` and you should see the following output:
 
 	Done, without errors.
 
+###Recap###
 To sum things up in this section we created a set of grunt tasks that:
 
 * start our selenium server
@@ -394,7 +395,7 @@ To sum things up in this section we created a set of grunt tasks that:
 * output the result to the console
 * closes down the services after finishing the tests
 
-We also wrote some feature tests that 
+We also wrote a feature test that:
 
 * open a browser
 * check the contents for a header
