@@ -1,0 +1,4 @@
+##Continuous delivery##
+
+###setting up our ci environment using codeship###
+ * deploy to heroku
