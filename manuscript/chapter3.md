@@ -1,7 +1,7 @@
-## Writing our first functional test ##
+# Writing our first functional test #
 I order to write our first functional test we needed a test page, which we built in the previous section. Now let's set up a simple Node.js webserver.
 
-### Web server: Express ###
+## Web server: Express ##
 A good practice to follow while working with Git is to create a branch for each feature that you are working on, so let's go ahead and create a new branch for this item of work.
 	
 	git checkout -b web-server
@@ -98,14 +98,14 @@ The process that runs our server is not daemonised and will continue to run unti
 	git merge web-server
 	git push
 	
-### Cucumber, WebDriver and Selenium ###
+## Cucumber, WebDriver and Selenium ##
 For our functional tests I have chosen [Cucumber.js](https://github.com/cucumber/cucumber-js) and [WebDriver.js](http://webdriver.io/) with [Selenium](http://docs.seleniumhq.org/). I chose this combination because I believe this will give you greater felxibility in the long wrong, especially if you plan on using different languagesin your toolchain. You can find Ruby, Java and .Net versions of Cucumber, WebDriver and Selenium.
 
 Once again we'll create a dedicated branch for this work:
 
 	git checkout -b functional-test
 
-####Selenium###
+###Selenium##
 
 > Selenium uses Java, so you will need to make sure you have it installed.
 
@@ -138,7 +138,7 @@ Save the changes and at the command line type: `grunt e2e` and you should see so
 	
 This told grunt to execite a task called `e2e` and confirms that the selenium server started properly at the following address `127.0.0.1:4444` and then was shutdown again (apparently it is not necessary to shutdown the server with a stop task).
 
-#### Using Grunt to start and stop the server####
+### Using Grunt to start and stop the server###
 Let's also add a step to stop and start our web server when we are running our frunctional tests. To that end we'll install another grunt module:
 
 	npm install grunt-express-server --save-dev
@@ -180,18 +180,18 @@ If you now run `grunt e2e`, you should see the following output:
 
 	Running "express:test:stop" (express) task
 
-####WebDriver####
+###WebDriver###
 The next thing we need to do is install [WebDriver.js](http://webdriver.io/) and we are then nearly ready to write our first feature test:
 
 	npm install webdriverjs --save-dev
 
 
-#### Cucumber ####
+### Cucumber ###
 The final piece of the puzzle is [Cucumber.js](https://github.com/cucumber/cucumber-js):
 	
 	npm install cucumber --save-dev
 
-### Our first test ###
+## Our first test ##
 
 Features are written using the [Gherkin syntax](https://github.com/cucumber/cucumber/wiki/Gherkin), and this is what our first feature looks like:
 
@@ -397,7 +397,7 @@ With that done we can commit our changes to our repository:
 	git merge functional-test
 	git push
 
-###Recap###
+##Recap##
 To sum things up in this section we created a set of grunt tasks that:
 
 * start our selenium server

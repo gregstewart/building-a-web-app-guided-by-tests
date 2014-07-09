@@ -1,9 +1,9 @@
-## Getting started ##
+# Getting started #
 The first thing I like to do with any project is to get our build pipeline set up and start deploying code to our 'production' environment. To that end we need to look at building the simplest thing possible to validate our testing infrastructure works, our CI envinronment can pick up changes on commit and after a succesful build deploy the changes.
 
 I will assume you have signed up and installed all of the software outlined in the [What you will need section]("What you will need section").
 
-### Setting up our project ###
+## Setting up our project ##
 Open up a terminal window or code to the command line and navigate to the location you want to store your project files. Once there let's create a project folder:
 
 	mkdir weatherly && cd weatherly
@@ -184,7 +184,7 @@ Now you can push your changes:
 
 	git push -u origin master
 	
-###Recap###
+##Recap##
 Before we move on let's just quickly recap what we have done so far:
 
 * created our app folder structure

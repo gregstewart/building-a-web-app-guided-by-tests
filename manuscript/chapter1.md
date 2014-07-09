@@ -1,5 +1,3 @@
-#Building Modern Web Apps Guided By Tests#
-
 # Introduction #
 The idea for this book started with a series of blog posts I wrote some time ago exploring building a [Backbone.js](http://backbonejs.org/) app using tests. I initially wanted to consolidate these blog posts into a book, but once I started jotting down what I wanted to put into this series, I decided to expand the scope. 
 
