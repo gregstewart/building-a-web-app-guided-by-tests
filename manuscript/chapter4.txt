@@ -30,7 +30,7 @@ The first step is easy, choose the Github option, then for step two choose the `
 
 Not it's time to set up the third step, set up out test commands. From the drop down labelled `Select your technology to prepopulate basic commands` choose `node.js`. 
 
-Next we need to tackle the section: `Modify your Setup Commands`. The instructions tell us that it can use the Node.js version specified in our `package.json` file, given that we have added this information let's go ahead and do that now. If you are unsure of the version of Node.js simply type
+Next we need to tackle the section: `Modify your Setup Commands`. The instructions tell us that it can use the Node.js version specified in our `package.json` file, given that we have not added this information previously let's go ahead and do that now. If you are unsure of the version of Node.js simply type:
 
 	node --version
 
