@@ -1,12 +1,12 @@
-# Introduction #
-The idea for this book started with a series of blog posts I wrote some time ago exploring building a [Backbone.js](http://backbonejs.org/) app using tests. I initially wanted to consolidate these blog posts into a book, but once I started jotting down what I wanted to put into this series, I decided to expand the scope. 
+#Introduction#
+The idea for this book started with a series of blog posts I wrote some time ago exploring building a [Backbone.js](http://backbonejs.org/) app using tests. I initially wanted to just consolidate these blog posts into a book, however once I started jotting down what I wanted to put into this series, I decided there was more to write about. 
 
-In the Front end and JavaScript world we have come a long way since the heady days of table based layouts sprinkled with Macromedia roll over scripts to make web pages interactive. The lines between back end and front end application code has almost blurred completely, you could argue it no longer exists when you consider Isomorpic apps. Our tooling has changed substantially as well: at our dispsal we have package managers (for both back and front end), build tools, unit test frameworks and deployment tools.  
+In the Front end and JavaScript world we have come a long way since the heady days of table based layouts sprinkled with Macromedia roll over scripts to make web pages interactive. The lines between back end and front end application code has almost blurred completely, you could argue it no longer exists when you consider Isomorpic apps. Our tooling has changed substantially as well: at our disposal we have package managers (for both back and front end), build tools, unit test frameworks and deployment tools.  
 
-## What we will be building ##
+##What we will be building##
 Over the coming pages and posts we will explore how to build a modern JavaScript web app guided by tests, using a toolset that will allow you to deploy with each commit to the cloud. We'll be building a small JavaScript weather app using [forecast.io](http://forecast.io)'s API. The app itself will use the browser's Geolocation API to figure out where your user is and retrieve a weekly weather forecast for that location.
 
-## How we will build it ##
+##How we will build it##
 Plain and simple, we'll build this app guided by tests and using a continuous delivery model, by having it deployed using [Codeship's CD service](https://www.codeship.io/) to a [Heroku](https://www.heroku.com/) instance. 
 
 The focus of this book is really about setting you on the right path to delivering quality software reliably and continuously. By the end you should have the confidence to push every commit to 'production'.
@@ -19,10 +19,10 @@ We will be making extensive use of the following tools:
 * Cucumber
 * Selenium
    
-## What you will need ##
+##What you will need##
 There are few pre-requisits you will need to get this app built. You will need to sign up for some services, grab a code/etxt editor, set up a version control system and finally get your Node.js environment configured. 
 
-### Services you wil need to sign up for ###
+###Services you wil need to sign up for###
 As I mentioned for our weather forecast API, we'll be using [forecast.io](https://developer.forecast.io/), so you might want to [go and sign up for a developer account](https://developer.forecast.io/register) as you will need a key to access the API.
 
 You should also sign up for a [Github](https://github.com/) or [Bitbucket](https://bitbucket.org/) account if you don't already have one, we'll need this for our CI service.
