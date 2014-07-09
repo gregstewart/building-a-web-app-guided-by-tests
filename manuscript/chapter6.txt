@@ -2,6 +2,7 @@
  * isomorphic apps
  * react for template rendering
  * bake in performance testing (phantomas)
+ * static analysis (https://github.com/es-analysis/plato / code climate)
 
 #TODO#
 Netx steps:
