@@ -1,3 +1,5 @@
+[![Build Status](https://www.gitbook.io/button/status/book/gregstewart/modern-web-app-development)](https://www.gitbook.io/book/gregstewart/modern-web-app-development/activity)
+
 #Building Modern Web Apps Guided By Tests#
 
 # Introduction #
