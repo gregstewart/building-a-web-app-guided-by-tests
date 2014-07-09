@@ -763,4 +763,3 @@ And with that go over to your codeship dashboard and if it all went well, then y
 
 ![First CI run!](Screenshot 2014-07-06 20.46.36.png) 
 	
- * deploy to heroku
