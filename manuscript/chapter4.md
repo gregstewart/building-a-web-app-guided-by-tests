@@ -136,7 +136,7 @@ The build process checks that we get a 200 response back and marks the build as 
 
 ![Weatherly running on Heroku](Screenshot 2014-07-12 01.04.22.png)
 
-And there you are your Continuous Delivery pipeline has been created!
+And there you are your Continuous Delivery pipeline has been created and in less than a minute we go from commit to production!
 
 ##Recap##
 In this last section we:
