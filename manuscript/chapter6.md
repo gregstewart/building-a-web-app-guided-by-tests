@@ -1,7 +1,7 @@
 * other
  * isomorphic apps
  * react for template rendering
- * bake in performance testing (phantomas)
+ * bake in performance testing (phantomas: https://github.com/macbre/phantomas)
  * static analysis (https://github.com/es-analysis/plato / code climate)
 
 #TODO#
