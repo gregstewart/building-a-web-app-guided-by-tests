@@ -200,8 +200,7 @@ Let's try this out our new grunt task:
 
 Similar output, with the difference that our process terminated this time because of the warnings about no files macthing our pattern. We'll fix this issue by writing our very first unit test!
 
-###Writing our first unit test###
-
+###Writing our first unit test### 
 Let's go ahead and create one source file and one test file, as well as some of the folder structure for our project: 
 
 	mkdir src/js/model
