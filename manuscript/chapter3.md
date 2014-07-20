@@ -1,5 +1,7 @@
 #Writing our first functional test#
-I order to write our first functional test we needed a test page, which we built in the previous section. Now let's set up a simple Node.js webserver.
+_TODO: What is a functional test?
+
+I order to write our first functional test we needed a test page, which we built in the previous section. Now let's set up a simple Node.js webserver. Throughout this section and in future you may find me refering to these kind of tests as Functional Tests, End-to-end, Feature tests or indeed User Journey tests. Confusing I know, I will try my best to keep it to feature and end-to-end tests, but be prepared when discussing this topic to come across the same variety of breadth of names for Functional tests. 
 
 ##Web server: Express##
 A good practice to follow while working with Git is to create a branch for each feature that you are working on, so let's go ahead and create a new branch for this item of work.
@@ -204,9 +206,9 @@ Features are written using the [Gherkin syntax](https://github.com/cucumber/cucu
     		When I view the main content area
     		Then I should see the temperature for my location
 
-I like to store these and the associated code in a functional-tests directory. So go ahead and create that folder under the root of our app. Then create a features folder and save the above feature contents to a file called `using-weatherly.feature`.
+I like to store these and the associated code in a e2e directory under a parent tests folder. So go ahead and create that folder structure under the root of our project. Then create a features folder and save the above feature contents to a file called `using-weatherly.feature`.
 
-If we were to run our cucumber tests now using `cucumber.js functional-tests/features/using-weatherly.feature` we would see the following output:
+If we were to run our cucumber tests now using `cucumber.js tests/e2e/features/using-weatherly.feature` we would see the following output:
 
 	UUU
 
@@ -252,7 +254,7 @@ This is extremely useful output. While it's clear that the code to execute the s
 
 	module.exports = UsingWeatherlyStepDefinitions;
 	
-Let's try and execute our feature test again with `cucumber.js functional-tests/features/using-weatherly.feature --require functional-tests/steps/using-weatherly-step-definitions.js` and now we should see:
+Let's try and execute our feature test again with `cucumber.js tests/e2e/features/using-weatherly.feature --require tests/e2e/steps/using-weatherly-step-definitions.js` and now we should see:
 
 	P--
 
@@ -267,7 +269,7 @@ The first bit of code we'll add to our tests is a [World object](https://github.
 
 > Note that other browsers such as Chrome and IE require special drivers which you can download from the [Selenium website](http://docs.seleniumhq.org/)
 
-Here's our world object (`world.js`), which we save into a folder called support under `functional-tests`:
+Here's our world object (`world.js`), which we save into a folder called support under `tests/e2e`:
 
 	var webdriverjs = require('webdriverjs');
 	var expect = require('chai').expect;
@@ -347,9 +349,9 @@ And let's edit our `Gruntfile.js` to look like this now:
       			}
     		},
     		cucumberjs: {
-      			src: 'functional-tests/features/',
+      			src: 'tests/e2e/features/',
       			options: {
-        			steps: 'functional-tests/steps/'
+        			steps: 'tests/e2e/steps/'
       			}
     		}
   		});
