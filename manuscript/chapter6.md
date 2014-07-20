@@ -17,5 +17,9 @@ Grunt copy assets to dist/
 Serve content from dist folder
 Edit the index.html file
 
+Promote:
+* Create a page on TCIAS:
+
+
 
 ## Appendices ##
