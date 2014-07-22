@@ -52,9 +52,9 @@ We'll start by using bower to grab some of our front end dependencies. Let's sta
   		]
 	}	
 
-Everybody likes a bit of Bootstrap so let's start with that package (I use the SASS port and quite frankly so should you):
+Everybody likes a bit of Bootstrap so let's start with that package :
 
-	bower install bootstrap-sass-official --save
+	bower install bootstrap --save
 
 The `--save` flag at the end of the command means that the dependecy will be added to our bower.jon file. We are doing this because we do not want to check in any external dependencies into our repository. Instead at build/CI time we'll restore these using bower.
 
@@ -68,10 +68,6 @@ And let's add this change to our repo:
 
 	git add .gitignore 
 	git commit -m "Adding bower_components to the ignore list"
-
-Modernizr is another staple:
-
-	bower install modernizr --save
 
 To round things off let's install HTML5 boilerplate
 

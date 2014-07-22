@@ -7,7 +7,7 @@ Let's start by creating some tasks to generate our css, then concatenate and ulg
 
 _TODO: why do we generate our assets?_
 
-##Compile our sass to css##
+##Compile our less to css##
 Let's tackle with our CSS files. The first thing we want to do is add the destination folder for our css content to the `.gitignore` list:
 
 	node_modules
@@ -17,13 +17,13 @@ Let's tackle with our CSS files. The first thing we want to do is add the destin
 	app/css/
 
 
-Under our source folder let's create a scss folder and create a main.scss file in it. Here's content of the file:
+Under our source folder let's create a scss folder and create a main.less file in it. Here's content of the file:
 
-	@import '../../bower_components/bootstrap-sass-official/vendor/assets/stylesheets/bootstrap';
+	@import '../../bower_components/bootstrap/less/bootstrap';
 
 Our build tasks will take this import directive and create us a nice main.css file that we can then use in our app.
 
-	npm install --save-dev grunt-sass
+	npm install grunt-contrib-less --save-dev
 	
 And now let's create a task to generate our css files by adding to our `Gruntfile`:
 
@@ -42,24 +42,25 @@ And now let's create a task to generate our css files by adding to our `Gruntfil
                     steps: 'tests/e2e/steps/'
                 }
             },
-            sass: {
-                dist: {
-                    options: {
-                        sourceMap: true
-                    },
-                    files: {
-                        'app/css/main.css': 'src/scss/main.scss'
-                    }
-                }
-            },
+            less: {
+            	production: {
+                	options: {
+                    	paths: ['app/css/'],
+                    	cleancss: true
+                	},
+                	files: {
+                   		'app/css/main.css': 'src/less/main.less'
+                	}
+            	}
+        	}
         });
 
         grunt.loadNpmTasks('grunt-express-server');
         grunt.loadNpmTasks('grunt-selenium-webdriver');
         grunt.loadNpmTasks('grunt-cucumber');
-        grunt.loadNpmTasks('grunt-sass');
+        grunt.loadNpmTasks('grunt-contrib-less');
         
-        grunt.registerTask('build', ['sass']);
+        grunt.registerTask('generate', ['less:production']);
 
         grunt.registerTask('e2e', [
             'selenium_start',
@@ -71,11 +72,10 @@ And now let's create a task to generate our css files by adding to our `Gruntfil
 
     };
     
-When you run `grunt build`, you should see the following output:
+When you run `grunt generate`, you should see the following output:
 
-	Running "sass:dist" (sass) task
-	File app/css/main.css created.
-	File app/css/main.css.map created.
+	Running "less:production" (less) task
+	File app/css/main.css created: 131.45 kB → 108.43 kB
 	
 If you were to start up our server and browse to localhost:3000, our UI should have more of a Bootstrap feel to it!
 
@@ -101,16 +101,17 @@ And add a simple task to copy our fonts across as well:
                     steps: 'tests/e2e/steps/'
                 }
             },
-            sass: {
-                dist: {
-                    options: {
-                        sourceMap: true
-                    },
-                    files: {
-                        'app/css/main.css': 'src/scss/main.scss'
-                    }
-                }
-            },
+            less: {
+            	production: {
+                	options: {
+                    	paths: ['app/css/'],
+                    	cleancss: true
+                	},
+                	files: {
+                   		'app/css/main.css': 'src/less/main.less'
+                	}
+            	}
+        	},
             copy: {
                 fonts: {
                     expand: true,
@@ -128,7 +129,7 @@ And add a simple task to copy our fonts across as well:
         grunt.loadNpmTasks('grunt-sass');
         grunt.loadNpmTasks('grunt-contrib-copy');
     
-        grunt.registerTask('build', ['sass', 'copy:fonts']);
+        grunt.registerTask('generate', ['less:production', 'copy:fonts']);
     
         grunt.registerTask('e2e', [
             'selenium_start',
@@ -140,61 +141,26 @@ And add a simple task to copy our fonts across as well:
     
     };
 
-Running `grunt build` task should now also copy our fonts across
+Running `grunt generate` task should now also copy our fonts across.
 
 ![Fonts now included](Screenshot 2014-07-20 23.18.07.png)   
 
 This is great, but how do we get this to run as part of our successful build? 
 
-###Option 1 - postinstall script###
-Well we can add a postinstall script to our package.json file!
+###Heroku build packs###
+Heroku has a way to run commands after a build, these come in the form of [build packs](https://devcenter.heroku.com/articles/buildpacks). Luckily for us [someone](https://github.com/mbuchetics) has already gone through [the effort of creating one](https://github.com/mbuchetics/heroku-buildpack-nodejs-grunt) to run Grunt after an install.
 
-    {
-        "name": "weatherly",
-        "version": "0.0.0",
-        "description": "Building a web app guided by tests",
-        "main": "index.js",
-        "engines": {
-            "node": "~0.10.28"
-        },
-        "scripts": {
-            "test": "grunt test",
-            "postinstall": "grunt build"
-        },
-        "repository": {
-            "type": "git",
-            "url": "https://github.com/gregstewart/weatherly.git"
-        },
-        "author": "Greg Stewart",
-        "license": "MIT",
-        "bugs": {
-            "url": "https://github.com/gregstewart/weatherly/issues"
-        },
-        "homepage": "https://github.com/gregstewart/weatherly",
-        "dependencies": {
-            "express": "^4.4.5",
-            "grunt": "^0.4.5",
-            "grunt-sass": "^0.14.0",
-            "grunt-contrib-copy": "^0.5.0"
-        },
-        "devDependencies": {
-            "chai": "^1.9.1",
-            "cucumber": "^0.4.0",
-            "grunt-cucumber": "^0.2.3",
-            "grunt-express-server": "^0.4.17",
-            "grunt-selenium-webdriver": "^0.2.420",
-            "webdriverjs": "^1.7.1"
-        }
-    }
+I have to say it's not ideal, however given Heroku's git based deployment approach, we have little choice but to generate these as part of the deployement. Typicall you would rely on the build to generate a package with all of the generated assets ready for consumption. This works though and does not force us to commit our generated assets into our repository.
 
-_didn't work very well with codeship_
+So here's how you go about installing our Build Pack for Grunt (be sure to replace `--app lit-meadow-5649` with your actual heroku app name):
 
-###Option 2 - Heroku build packs###
-heroku login
+	heroku login
 
-heroku config:add BUILDPACK_URL=https://github.com/mbuchetics/heroku-buildpack-nodejs-grunt.git --app lit-meadow-5649
+	heroku config:add BUILDPACK_URL=https://github.com/mbuchetics/heroku-buildpack-nodejs-grunt.git --app lit-meadow-5649
 
-heroku config:set NODE_ENV=production --app lit-meadow-5649
+	heroku config:set NODE_ENV=production --app lit-meadow-5649
+
+Then we modify our Gruntfile to include a new `heroku:production` task, which basically references our `build` task:
 
     module.exports = function (grunt) {
         grunt.initConfig({
@@ -211,16 +177,17 @@ heroku config:set NODE_ENV=production --app lit-meadow-5649
                     steps: 'tests/e2e/steps/'
                 }
             },
-            sass: {
-                dist: {
-                    options: {
-                        sourceMap: true
-                    },
-                    files: {
-                        'app/css/main.css': 'src/scss/main.scss'
-                    }
-                }
-            },
+            less: {
+            	production: {
+                	options: {
+                    	paths: ['app/css/'],
+                    	cleancss: true
+                	},
+                	files: {
+                   		'app/css/main.css': 'src/less/main.less'
+                	}
+            	}
+        	},
             copy: {
                 fonts: {
                     expand: true,
@@ -229,11 +196,6 @@ heroku config:set NODE_ENV=production --app lit-meadow-5649
                     filter: 'isFile',
                     flatten: true
                 }
-            },
-            karma: {
-                unit: {
-                    configFile: 'karma.conf.js'
-                }
             }
         });
     
@@ -241,10 +203,9 @@ heroku config:set NODE_ENV=production --app lit-meadow-5649
         grunt.loadNpmTasks('grunt-selenium-webdriver');
         grunt.loadNpmTasks('grunt-cucumber');
         grunt.loadNpmTasks('grunt-sass');
-        grunt.loadNpmTasks('grunt-contrib-copy');
-        grunt.loadNpmTasks('grunt-karma');
-    
-        grunt.registerTask('build', ['sass', 'copy:fonts']);
+        grunt.loadNpmTasks('grunt-contrib-copy');    
+        
+        grunt.registerTask('generate', ['less:production', 'copy:fonts']);
     
         grunt.registerTask('e2e', [
             'selenium_start',
@@ -258,12 +219,12 @@ heroku config:set NODE_ENV=production --app lit-meadow-5649
             'karma:unit'
         ]);
     
-        grunt.registerTask('heroku:production', 'build');
+        grunt.registerTask('heroku:production', 'generate');
     };
     
-Re-jigg package.json:
+The final step involves re-jigging package.json to include Grunt as a general dependency:
 
-    {
+        {
         "name": "weatherly",
         "version": "0.0.0",
         "description": "Building a web app guided by tests",
@@ -286,26 +247,106 @@ Re-jigg package.json:
         "homepage": "https://github.com/gregstewart/weatherly",
         "dependencies": {
             "express": "^4.4.5",
-            "grunt-sass": "^0.14.0",
-            "grunt-contrib-copy": "^0.5.0"
+            "grunt-contrib-copy": "^0.5.0",
+            "grunt-contrib-less": "^0.11.3"
         },
         "devDependencies": {
             "chai": "^1.9.1",
             "cucumber": "^0.4.0",
             "grunt": "^0.4.5",
             "grunt-contrib-copy": "^0.5.0",
+            "grunt-contrib-less": "^0.11.3",
             "grunt-cucumber": "^0.2.3",
             "grunt-express-server": "^0.4.17",
-            "grunt-karma": "^0.8.3",
             "grunt-selenium-webdriver": "^0.2.420",
-            "karma": "^0.12.17",
-            "karma-jasmine": "^0.1.5",
-            "karma-phantomjs-launcher": "^0.1.4",
             "webdriverjs": "^1.7.1"
         }
     }
+
     
-_No luck get a segmentation fault on deploy when trying to generate sass assets_
+This is another thing about this approach that I am not a fan of, having to move what are essentially development dependencies into our production dependencies.
+
+Now we are nearly ready to test this out, however there is one more task we need to add. Since we are using Bower for some of our front end components and we haven't checked these into our repository, we'll need to restore them from our `bower.json` file. Let's first install a new grunt package to assist us:
+
+	npm install grunt-bower-task --save
+	
+And the  edit our `Gruntfile.js`:
+
+    module.exports = function (grunt) {
+        grunt.initConfig({
+            express: {
+                test: {
+                    options: {
+                        script: './server.js'
+                    }
+                }
+            },
+            cucumberjs: {
+                src: 'tests/e2e/features/',
+                options: {
+                    steps: 'tests/e2e/steps/'
+                }
+            },
+            less: {
+            	production: {
+                	options: {
+                    	paths: ['app/css/'],
+                    	cleancss: true
+                	},
+                	files: {
+                   		'app/css/main.css': 'src/less/main.less'
+                	}
+            	}
+        	},
+            copy: {
+                fonts: {
+                    expand: true,
+                    src: ['bower_components/bootstrap-sass-official/vendor/assets/fonts/bootstrap/*'],
+                    dest: 'app/css/bootstrap/',
+                    filter: 'isFile',
+                    flatten: true
+                }
+            },
+        	bower: {
+            	install: {
+                	options: {
+	                	cleanTargetDir:false,
+                   		targetDir: './bower_components'
+                	}
+            	}
+        	}
+        });
+    
+        grunt.loadNpmTasks('grunt-express-server');
+        grunt.loadNpmTasks('grunt-selenium-webdriver');
+        grunt.loadNpmTasks('grunt-cucumber');
+        grunt.loadNpmTasks('grunt-sass');
+        grunt.loadNpmTasks('grunt-contrib-copy');
+        grunt.loadNpmTasks('grunt-bower-task');
+        
+        grunt.registerTask('generate', ['less:production', 'copy:fonts']);
+    	grunt.registerTask('build', ['bower:install', 'generate']);
+    
+        grunt.registerTask('e2e', [
+            'selenium_start',
+            'express:test',
+            'cucumberjs',
+            'selenium_stop',
+            'express:test:stop'
+        ]);
+    
+        grunt.registerTask('heroku:production', 'build');
+    };
+    
+
+
+With that let's push these changes and see if we can't have a more nicely styled page appear on our Heroku app!
+
+	git add .
+	git commit -m "Generate less as part of the build and copy fonts to app folder"
+	git checkout master
+	git merge code-build
+	git push origin master
 
 * use browserify
 * introduce backbone/underscore
