@@ -618,5 +618,5 @@ Let's commit, merge and push to our remote repository:
     git add .
     git commit -m "JavaScript browserified and uglyfied"
     git checkout master
-    git merge code-build
+    git merge generate-assets
     git push
