@@ -17,7 +17,7 @@ Let's tackle with our CSS files. The first thing we want to do is add the destin
 	app/css/
 
 
-Under our source folder let's create a scss folder and create a main.less file in it. Here's content of the file:
+Under our source folder let's create a less folder and create a main.less file in it. Here's content of the file:
 
 	@import '../../bower_components/bootstrap/less/bootstrap';
 
@@ -222,7 +222,7 @@ Then we modify our Gruntfile to include a new `heroku:production` task, which ba
         grunt.registerTask('heroku:production', 'generate');
     };
 
-The final step involves re-jigging package.json to include Grunt as a general dependency:
+The final step involves re-jigging package.json to include those newly added grunt tasks as a general dependency:
 
         {
         "name": "weatherly",
@@ -365,7 +365,7 @@ To get started let's first create a our source directory for our JavaScript, we'
 
 With that done let's install a [grunt task](https://www.npmjs.org/package/grunt-browserify) for [Browserify](http://browserify.org/)
 
-	npm install grunt-browserify
+	npm install grunt-browserify --save
 
 The reason we have chosen a grunt task is that we will use this to export our source so that browsers can understand module.exports and use it to concatenate our code.
 
@@ -449,9 +449,9 @@ If we now run our generate task you should find a `main.min.js` file under `app/
 
 I chose to go with Uglifyify, as always let's just install it:
 
-    npm install uglifyify
+    npm install uglifyify --save
 
-And then edit our `Gruntfile.js` configure our browserify task to use it is a transform:
+And then edit our `Gruntfile.js` by configuring our browserify task to use it is a transform:
 
 
     module.exports = function (grunt) {
