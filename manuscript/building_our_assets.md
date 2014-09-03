@@ -17,7 +17,7 @@ Let's tackle with our CSS files. The first thing we want to do is add the destin
 	app/css/
 
 
-Under our source folder let's create a less folder and create a main.less file in it. Here's content of the file:
+Under our source folder let's create a `less` folder and create a `main.less` file in it. Here's content of the file:
 
 	@import '../../bower_components/bootstrap/less/bootstrap';
 
@@ -620,3 +620,5 @@ Let's commit, merge and push to our remote repository:
     git checkout master
     git merge generate-assets
     git push
+
+_TODO recap for the chapter_

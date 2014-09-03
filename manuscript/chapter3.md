@@ -1,18 +1,25 @@
 #Writing our first functional test#
-_TODO: What is a functional test?
 
-I order to write our first functional test we needed a test page, which we built in the previous section. Now let's set up a simple Node.js webserver. Throughout this section and in future you may find me refering to these kind of tests as Functional Tests, End-to-end, Feature tests or indeed User Journey tests. Confusing I know, I will try my best to keep it to feature and end-to-end tests, but be prepared when discussing this topic to come across the same variety of breadth of names for Functional tests. 
+__TODO I seem to mainly refer to the tests as end to end test, I should rename this section to reflect this __
+
+What is a functional test? [Wikipedia tells us](http://en.wikipedia.org/wiki/Functional_testing):
+
+>Functional testing is a quality assurance (QA) process[1] and a type of black box testing that bases its test cases on the specifications of the software component under test. Functions are tested by feeding them input and examining the output, and internal program structure is rarely considered (not like in white-box testing).[2] Functional Testing usually describes what the system does.
+
+Throughout this section and in future you may find me refering to these kind of tests as Functional Tests, End-to-end, Feature tests or indeed User Journey tests. Confusing I know, I will try my best to keep it to feature and end-to-end tests, but be prepared when discussing this topic to come across the same variety of breadth of names for Functional tests.
+
+With the definition out of the way, let's go through the steps necessary in order to write our first functional test. We needed a test page, which we built in the previous section, now let's set up a simple Node.js webserver to host the page. 
 
 ##Web server: Express##
 A good practice to follow while working with Git is to create a branch for each feature that you are working on, so let's go ahead and create a new branch for this item of work.
-	
-	git checkout -b web-server
-	
+
+	> git checkout -b web-server
+
 Make sure you are in the root of our project and not in the `app/` folder
 
-Since we'll be using Node.js we can use NPM to manage the dependencies. These dependencies are stored in a folder called node_modules. Since we don't want to check any node modules/packages into our repository we added that folder to our `.gitignore` file in when we set up the project. If we don't add those packages to our repository you may be wondering how our CI and Heroku instance will now how to run the app. To that end we'll use a handy file called `package.json`. When we run NPM we can not only install dependencies, we can also add them to our `package.json` file and our target envinronments can read this file and install these packages for us.
+Since we'll be using Node.js we can use NPM to manage the dependencies. These dependencies are stored in a folder called `node_modules`. Since we don't want to check any node modules/packages into our repository we added that folder to our `.gitignore` file in when we first set up the project. If we don't add those packages to our repository you may be wondering how our CI and Heroku instance will now how to run the app. To that end we'll use a handy file called `package.json`. When we run NPM we can not only install dependencies, we can also add them to our `package.json` file and our target envinronments can read this file and install these packages for us.
 
-Typing `npm init` give us a way to create our package.json, here's what I answered when prompted:
+Typing `npm init` allows us to create our package.json, here's what I answered when prompted:
 
 	This utility will walk you through creating a package.json file.
 	It only covers the most common items, and tries to guess sane defaults.
@@ -24,13 +31,13 @@ Typing `npm init` give us a way to create our package.json, here's what I answer
 	save it as a dependency in the package.json file.
 
 	Press ^C at any time to quit.
-	name: (weatherly) 
-	version: (0.0.0) 
+	name: (weatherly)
+	version: (0.0.0)
 	description: Building a web app guided by tests
-	entry point: (index.js) 
+	entry point: (index.js)
 	test command: grunt test
-	git repository: (https://github.com/gregstewart/weatherly.git) 
-	keywords: 
+	git repository: (https://github.com/gregstewart/weatherly.git)
+	keywords:
 	author: Greg Stewart
 	license: (ISC) MIT
 	About to write to /Users/gregstewart/Projects/github/weatherly/package.json:
@@ -54,19 +61,19 @@ Typing `npm init` give us a way to create our package.json, here's what I answer
   		},
 	  	"homepage": "https://github.com/gregstewart/weatherly"
 	}
-	
+
 	Is this ok? (yes) yes
 
 As you can see it autocompleted a bunch of information for you, such as the project name, version number and Git details. Let's add that file to our repo before going any further:
 
-	git add package.json
-	git commit -m "Created package.json file"
+	> git add package.json
+	> git commit -m "Created package.json file"
 
 Now let's go ahead and install a web server module. We'll just use [express](http://expressjs.com/).
 
-	npm install express --save
-	
-By specifying `--save` the dependecy was added to our `package.json` file, if you open it up you should see the following toward the end of the file:
+	> npm install express --save
+
+Similar to how we used Bower, by specifying `--save` the dependecy was added to our `package.json` file, if you open it up you should see the following toward the end of the file:
 
 	"dependencies": {
    		"express": "^4.4.5"
@@ -85,37 +92,37 @@ Next create a new file called `server.js` in the root of our project and add the
 
 And to start our server type:
 
-	npm start
+	> npm start
 
-If you now open your browser and hit `http://localhost:3000` you should once again see: 
+If you now open your browser and hit `http://localhost:3000` you should once again see:
 
 ![Rendered HTML hosted by our Connect server](Screenshot 2014-06-18 23.19.42.png)
 
-The process that runs our server is not daemonised and will continue to run until we close the console or type `^C`. Go ahead and kill the server and add those changes to our repository, merge these changes back into master and finally push to origin:
+The process that runs our server is not daemonised and will continue to run until we close the console or type `^C`. Go ahead and kill the server. Next we add those changes to our repository, merge these changes back into master and finally push to origin:
 
-	git add server.js
-	git add package.json
-	git commit -m "Installed Connect and created a very basic web server for our app"
-	git checkout master
-	git merge web-server
-	git push
-	
+	> git add server.js
+	> git add package.json
+	> git commit -m "Installed Connect and created a very basic web server for our app"
+	> git checkout master
+	> git merge web-server
+	> git push
+
 ##Cucumber, WebDriver and Selenium##
-For our functional tests I have chosen [Cucumber.js](https://github.com/cucumber/cucumber-js) and [WebDriver.js](http://webdriver.io/) with [Selenium](http://docs.seleniumhq.org/). I chose this combination because I believe this will give you greater felxibility in the long wrong, especially if you plan on using different languagesin your toolchain. You can find Ruby, Java and .Net versions of Cucumber, WebDriver and Selenium.
+For our functional tests I have chosen [Cucumber.js](https://github.com/cucumber/cucumber-js) and [WebDriver.js](http://webdriver.io/) with [Selenium](http://docs.seleniumhq.org/). I chose this combination because I believe this will give you greater felxibility in the long wrong, especially if you plan on using different languages in your toolchain. You can find Ruby, Java and .Net versions of Cucumber, WebDriver and Selenium.
 
 Once again we'll create a dedicated branch for this work:
 
-	git checkout -b functional-test
+	> git checkout -b functional-test
 
 ###Selenium##
 
 > Selenium uses Java, so you will need to make sure you have it installed.
 
-We could install the binaries manually, but since I plan using Grunt to automate tasks around starting and stopping the server, we might as well use [grunt-selenium-webdriver] (https://www.npmjs.org/package/grunt-selenium-webdriver) module as this includes everything that we need, including the jar file for the Selenium Server. 
+We could install the binaries manually, but since I plan using Grunt to automate tasks around starting and stopping the server, we might as well use [grunt-selenium-webdriver] (https://www.npmjs.org/package/grunt-selenium-webdriver) module as this includes everything that we need, including the jar file for the Selenium Server.
 
-	`npm install grunt-selenium-webdriver --save-dev`
-	
-We use the `--save-dev` flag to indicate that we want to add this dependency to our package.json file, however only for development purposes. With that done let's create a Grunt task to start the server (you can find more information on Grunt and tasks over at [the official Grunt.js website](http://gruntjs.com/getting-started)). The first thing we'll need is a `Gruntfile.js`, so add one to the root of your project and edit it to contain the following:
+	> npm install grunt-selenium-webdriver --save-dev
+
+We use the `--save-dev` flag to indicate that we want to add this dependency to our package.json file, however only for development purposes (meaning that when we deploy to our 'production' environment, e.g. Heroku, it won't install the package during deployment). With that done let's create a Grunt task to start the Selenium server (just in case you missed it in the [Getting Started section]() you can find more information on Grunt and tasks over at [the official Grunt.js website](http://gruntjs.com/getting-started)). The first thing we'll need is a `Gruntfile.js`, so add one to the root of your project and edit it to contain the following:
 
 	module.exports = function(grunt) {
   		grunt.initConfig({
@@ -129,7 +136,7 @@ We use the `--save-dev` flag to indicate that we want to add this dependency to 
   		]);
 	};
 
-Save the changes and at the command line type: `grunt e2e` and you should see something like this: 
+Save the changes and at the command line type: `grunt e2e` and you should see something like this:
 
 	Running "selenium_start" task
 	seleniumrc webdriver ready on 127.0.0.1:4444
@@ -137,13 +144,13 @@ Save the changes and at the command line type: `grunt e2e` and you should see so
 	Running "selenium_stop" task
 
 	Done, without errors.
-	
-This told grunt to execite a task called `e2e` and confirms that the selenium server started properly at the following address `127.0.0.1:4444` and then was shutdown again (apparently it is not necessary to shutdown the server with a stop task).
 
-###Using Grunt to start and stop the server###
+This told grunt to execute a task called `e2e` and confirms that the selenium server started properly at the following address `127.0.0.1:4444` and then was shutdown again (apparently it is not necessary to shutdown the server with a stop task).
+
+###Using Grunt to start and stop the express server###
 Let's also add a step to stop and start our web server when we are running our frunctional tests. To that end we'll install another grunt module:
 
-	npm install grunt-express-server --save-dev
+	> npm install grunt-express-server --save-dev
 
 And we'll edit our Grunt file so that it looks for our `server.js` and we can control the starting and stopping of our server:
 
@@ -168,8 +175,8 @@ And we'll edit our Grunt file so that it looks for our `server.js` and we can co
     		'express:test:stop'
   		]);
 	};
-	
-If you now run `grunt e2e`, you should see the following output:
+
+If we now run `grunt e2e`, we should see the following output:
 
 	Running "selenium_start" task
 	seleniumrc webdriver ready on 127.0.0.1:4444
@@ -185,13 +192,15 @@ If you now run `grunt e2e`, you should see the following output:
 ###WebDriver###
 The next thing we need to do is install [WebDriver.js](http://webdriver.io/) and we are then nearly ready to write our first feature test:
 
-	npm install webdriverjs --save-dev
+	> npm install webdriverjs --save-dev
 
+
+WebDriver is the glue between Selenium and Cucumber.
 
 ###Cucumber###
 The final piece of the puzzle is [Cucumber.js](https://github.com/cucumber/cucumber-js):
-	
-	npm install cucumber --save-dev
+
+	> npm install cucumber --save-dev
 
 ##Our first test##
 
@@ -200,7 +209,7 @@ Features are written using the [Gherkin syntax](https://github.com/cucumber/cucu
 	Feature: Using our awesome weather app
 		As a user of weatherly
  		I should be able to see the weather information for my location
-	
+
 		Scenario: Viewing the homepage
     		Given I am on the home page
     		When I view the main content area
@@ -208,7 +217,7 @@ Features are written using the [Gherkin syntax](https://github.com/cucumber/cucu
 
 I like to store these and the associated code in a e2e directory under a parent tests folder. So go ahead and create that folder structure under the root of our project. Then create a features folder and save the above feature contents to a file called `using-weatherly.feature`.
 
-If we were to run our cucumber tests now using `cucumber.js tests/e2e/features/using-weatherly.feature` we would see the following output:
+If we were to run our cucumber tests now using `> cucumber.js tests/e2e/features/using-weatherly.feature` we would see the following output:
 
 	UUU
 
@@ -232,7 +241,7 @@ If we were to run our cucumber tests now using `cucumber.js tests/e2e/features/u
   		callback.pending();
 	});
 
-This is extremely useful output. While it's clear that the code to execute the steps in the feature are undefined, the output actually gives snippets to create our step definitions. So let's go ahead and create our step definition. Inside of our functional test folder, create a `steps` folder and add a file called `using-weather-steps.js` with the following content:
+This is extremely useful output. While it's clear that the code to execute the steps in the feature are undefined, the output actually gives snippets to create our step definitions. So let's go ahead and create our step definition. Inside of our functional test folder, create a `steps` folder and add a file called `using-weatherly-step-definitions.js` with the following content:
 
 	var UsingWeatherlyStepDefinitions = function () {
 
@@ -245,16 +254,16 @@ This is extremely useful output. While it's clear that the code to execute the s
       		// express the regexp above with the code you wish you had
       		callback.pending();
     	});
-    
+
     	this.Then(/^I should see the temperature for my location$/, function (callback) {
       		// express the regexp above with the code you wish you had
       		callback.pending();
-    	});       
+    	});
 	};
 
 	module.exports = UsingWeatherlyStepDefinitions;
-	
-Let's try and execute our feature test again with `cucumber.js tests/e2e/features/using-weatherly.feature --require tests/e2e/steps/using-weatherly-step-definitions.js` and now we should see:
+
+Let's try and execute our feature test again with `> cucumber.js tests/e2e/features/using-weatherly.feature --require tests/e2e/steps/using-weatherly-step-definitions.js` and now we should see:
 
 	P--
 
@@ -263,9 +272,9 @@ Let's try and execute our feature test again with `cucumber.js tests/e2e/feature
 
 Time to flesh out the steps to do some work and check for elements on the page while the tests are running. We'll make use of [Chai.js](http://chaijs.com/) as our assertion library, so let's go ahead and install this module:
 
-	npm install chai --save-dev
+	> npm install chai --save-dev
 
-The first bit of code we'll add to our tests is a [World object](https://github.com/cucumber/cucumber-js#world), which willl initialise our browser (read WebDriver) and add a few helper methods (`visit` and `hasText`). As our browser we are using phantomjs, but if you would like to see the test running simply replace `browserName: 'phantomjs'` with say `browserName: 'firefox'`.
+The first bit of code we'll add to our tests is a [World object](https://github.com/cucumber/cucumber-js#world), which will initialise our browser (read WebDriver) and add a few helper methods (`visit` and `hasText`). As our browser we are using [PhantomJS](http://phantomjs.org/), but if you would like to see the test running in say FireFox, simply replace `browserName: 'phantomjs'` with `browserName: 'firefox'`.
 
 > Note that other browsers such as Chrome and IE require special drivers which you can download from the [Selenium website](http://docs.seleniumhq.org/)
 
@@ -334,8 +343,8 @@ Now let's re-visit our `using-weatherly-step-definitions.js` and replace the con
 The first step opens the site, and then we assert that the header element displays `London Right Now` and that the element with our temperature shows `14 degrees`
 
 If we were to once again try and execute our feature test, we would get an error telling us that it can't connect to the selenium server. So let's wrap all of this into our e2e grunt task. Let's start by adding another module to our setup:
-	
-	npm install grunt-cucumber --save-dev
+
+	> npm install grunt-cucumber --save-dev
 
 And let's edit our `Gruntfile.js` to look like this now:
 
@@ -369,7 +378,7 @@ And let's edit our `Gruntfile.js` to look like this now:
   		]);
 	};
 
-Now type `grunt e2e` and you should see the following output:
+Now type `> grunt e2e` and you should see the following output:
 
 	Running "selenium_start" task
 	seleniumrc webdriver ready on 127.0.0.1:4444
@@ -390,14 +399,14 @@ Now type `grunt e2e` and you should see the following output:
 	Stopping Express server
 
 	Done, without errors.
-	
+
 With that done we can commit our changes to our repository:
 
-	git add .
-	git commit -m "Scenario: Viewing the homepage, created and implemented"
-	git checkout master
-	git merge functional-test
-	git push
+	> git add .
+	> git commit -m "Scenario: Viewing the homepage, created and implemented"
+	> git checkout master
+	> git merge functional-test
+	> git push
 
 ##Recap##
 To sum things up in this section we created a set of grunt tasks that:
