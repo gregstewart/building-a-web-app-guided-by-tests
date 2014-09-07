@@ -1,4 +1,4 @@
-#Development guided by tests#
+#Unit tests#
 Up until now we have been very much focused on setting up our build pipeline and writing a high level feature tests. And while I promised that it was time to write some code, we do have do a few more setup steps before we can get stuck in. To get confidence in our code we will be writing JavaScript modules using tests and we want those tests to run all the time (i.e. with each save). To that end we need to set up some more tasks to run those tests for us and add them to our our deployment process. Furthermore we want these test to run during our build process.
 
 ##Setting up our unit test runner using karma##
@@ -545,7 +545,9 @@ If we keep an eye on our dashboard we should see a build kicked-off and `test` t
 ## Adding code coverage
  * code coverage
  
- 
+#Development guided by tests 
+We'll cover: 
+ * unit tests
  * integration test
  * using stubs
  * using mocks
