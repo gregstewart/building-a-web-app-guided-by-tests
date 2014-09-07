@@ -3,6 +3,18 @@ The idea for this book started with a series of blog posts I wrote some time ago
 
 In the Front end and JavaScript world we have come a long way since the heady days of table based layouts sprinkled with Macromedia roll over scripts to make web pages interactive. The lines between back end and front end application code has almost blurred completely, you could argue it no longer exists when you consider Isomorpic apps. Our tooling has changed substantially as well: at our disposal we have package managers (for both back and front end), build tools, unit test frameworks and deployment tools.  
 
+##Conventions
+
+Before we get started here are few conventions to be aware of. Where ever you see a statement like below starting with `>` this is a command you type from the terminal window
+
+	> menaing a command typed at the console
+	
+Whereas as the following typicallys is code or a configuration to be added to a file:
+
+	code
+	or
+	config
+
 ##What we will be building##
 Over the coming pages and posts we will explore how to build a web app guided by tests, using a toolset that will allow you to deploy with each commit to the cloud. We'll making use of JavaScript across the whole stack to build a small weather app using [forecast.io](http://forecast.io)'s API. The app itself will use the browser's Geolocation API to figure out where your user is and retrieve a weekly weather forecast for that location.
 
