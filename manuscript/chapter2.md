@@ -163,7 +163,7 @@ In your editor of choice open up the app/index.html file and add the following:
 
 If you open up the file in your browser you should see something like this hopefully:
 
-![Rendered HTML](Screenshot 2014-06-18 23.19.42.png)
+![Rendered HTML](images/Screenshot 2014-06-18 23.19.42.png)
 
 Not exactly something to write home about, but it's enough for us to get started setting up our little server, writing a functional test and deploying something to our Heroku instance. We'll make this a lot prettier later on in the book when we deal with setting up Grunt to build our JavaScript and CSS assets.
 
@@ -174,7 +174,7 @@ The last thing we'll do is commit all of our changes to our local repository:
 
 At this stage it's a good idea to also push the changes to our remote repository. If you have followed the [What you will need section]("What you will need section"), you will hopefully have created a Github account. If not go ahead and to that now. Then create a repository called weatherly, here's what I entered:
 
-![Creating your weatherly repository](Screenshot 2014-06-18 23.35.50.png)
+![Creating your weatherly repository](images/Screenshot 2014-06-18 23.35.50.png)
 
 To push our changes to the remote repository, you will need to tell your local repository where it is (be sure to replace the <account_name> with your actual account name):
 

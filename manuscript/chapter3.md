@@ -96,7 +96,7 @@ And to start our server type:
 
 If you now open your browser and hit `http://localhost:3000` you should once again see:
 
-![Rendered HTML hosted by our Connect server](Screenshot 2014-06-18 23.19.42.png)
+![Rendered HTML hosted by our Connect server](images/Screenshot 2014-06-18 23.19.42.png)
 
 The process that runs our server is not daemonised and will continue to run until we close the console or type `^C`. Go ahead and kill the server. Next we add those changes to our repository, merge these changes back into master and finally push to origin:
 

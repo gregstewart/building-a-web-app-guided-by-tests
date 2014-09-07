@@ -523,7 +523,7 @@ And let's make sure everything runs as intended:
 
 If you recall we configured our build to execute `grunt e2e`, we need to update this now to execute `grunt test`. Log into to your Codeship dashboard and edit the test configuration:
 
-![Codeship dashboard with updating test configuration](Screenshot 2014-09-07 12.59.58.png)
+![Codeship dashboard with updating test configuration](images/Screenshot 2014-09-07 12.59.58.png)
 
 Ready to give this is a spin? 
 
@@ -536,7 +536,7 @@ Ready to give this is a spin?
  
 If we keep an eye on our dashboard we should see a build kicked-off and `test` task being executed:
 
-![Codeship dashboard with updating test configuration](Screenshot 2014-09-07 13.08.51.png)
+![Codeship dashboard with updating test configuration](images/Screenshot 2014-09-07 13.08.51.png)
  
 
 ## Continuoulsy running our tests
