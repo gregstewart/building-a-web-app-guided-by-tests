@@ -857,7 +857,12 @@ Not let's fix our git configuration so that it includes our app code by editing 
 	app/js/
 	node_modules/*
 	!node_modules/weatherly
-	
+
+By changing the blanket exclusion rule for our `node_modules` to one using exceptions, that's what the last two lines do, exclude all modules apart from our `weatherly` one:
+
+	node_modules/*
+	!node_modules/weatherly
+
 Now when you type `git add .` it will include all if your changes:
 
 	> git status
@@ -887,10 +892,211 @@ Before moving on, let's commit all of the changes:
 
 	> git commit - m "tests browserified"
 	
-Time to now turn our attention to adding a watch task to run our tests on any file change.
+Time to now turn our attention to adding a watch task to run our tests on any file change. Let's start by adding [grunt-contrib-watch](https://www.npmjs.org/package/grunt-contrib-watch):
 
+	> npm install grunt-contrib-watch --save-dev
+	
+With that done, we need to update our `Gruntfile.js`:
+
+     module.exports = function (grunt) {
+        grunt.initConfig({
+            express: {
+                test: {
+                    options: {
+                        script: './server.js'
+                    }
+                }
+            },
+            cucumberjs: {
+                src: 'tests/e2e/features/',
+                options: {
+                    steps: 'tests/e2e/steps/'
+                }
+            },
+            less: {
+                production: {
+                    options: {
+                        paths: ['app/css/'],
+                        cleancss: true
+                    },
+                    files: {
+                        'app/css/main.css': 'src/less/main.less'
+                    }
+                }
+            },
+            copy: {
+                fonts: {
+                    expand: true,
+                    src: ['bower_components/bootstrap/fonts/*'],
+                    dest: 'app/fonts/',
+                    filter: 'isFile',
+                    flatten: true
+                }
+            },
+            bower: {
+                install: {
+                    options: {
+                        cleanTargetDir:false,
+                        targetDir: './bower_components'
+                    }
+                }
+            },
+            browserify: {
+                code: {
+                    dest: 'app/js/main.min.js',
+                    src: 'node_modules/weatherly/js/**/*.js',
+                    options: {
+                        transform: ['uglifyify']
+                    }
+                },
+                test: {
+                    dest: 'app/js/test.js',
+                    src: 'tests/unit/**/*.js'
+                }
+            },
+            karma: {
+                unit: {
+                    configFile: 'karma.conf.js',
+                    background: true
+                }
+            },
+	        watch: {
+    	        files: ['node_modules/weatherly/js/**/*.js', 'tests/unit/**/*.js'],
+        	    tasks: [ 'browserify:code', 'browserify:test', 'karma:unit:run']
+        	}
+    	});
+    
+        grunt.loadNpmTasks('grunt-express-server');
+        grunt.loadNpmTasks('grunt-selenium-webdriver');
+        grunt.loadNpmTasks('grunt-cucumber');
+        grunt.loadNpmTasks('grunt-contrib-less');
+        grunt.loadNpmTasks('grunt-contrib-copy');
+        grunt.loadNpmTasks('grunt-browserify');
+        grunt.loadNpmTasks('grunt-bower-task');
+        grunt.loadNpmTasks('grunt-karma');
+        grunt.loadNpmTasks('grunt-contrib-watch');
+    
+        grunt.registerTask('generate', ['less:production', 'copy:fonts', 'browserify:code']);
+        grunt.registerTask('build', ['bower:install', 'generate']);
+        grunt.registerTask('unit', ['browserify:code', 'browserify:test', 'karma:unit', 'watch']);
+    
+        grunt.registerTask('e2e', [
+            'selenium_start',
+            'express:test',
+            'cucumberjs',
+            'selenium_stop',
+            'express:test:stop'
+        ]);
+    
+        grunt.registerTask('test', ['build', 'browserify:test', 'karma:unit', 'e2e']);
+    
+        grunt.registerTask('heroku:production', 'build');
+    };
+    
+We did a few things here. Loaded our new watch module and added a task for it. That task would for one browserify both of our test files and source files when they change and run our our Karma unit task. The `karma:unit` was also slightly modified, by adding the `background: true` option. The last change was to add the `watch` task to the `unit` task. 
+
+Next we need to make a couple of changes to our `karma.conf.js` file. Two options need to changed form `true` to `false`, namely `autoWatch` and `singleRun`:
+
+    // Karma configuration
+    // Generated on Sun Jul 20 2014 16:18:54 GMT+0100 (BST)
+    
+    module.exports = function (config) {
+        config.set({
+    
+            // base path that will be used to resolve all patterns (eg. files, exclude)
+            basePath: '',
+    
+    
+            // frameworks to use
+            // available frameworks: https://npmjs.org/browse/keyword/karma-adapter
+            frameworks: ['jasmine'],
+    
+    
+            // list of files / patterns to load in the browser
+            files: [
+                'app/js/test.js'
+            ],
+    
+    
+            // list of files to exclude
+            exclude: [
+            ],
+    
+    
+            // preprocess matching files before serving them to the browser
+            // available preprocessors: https://npmjs.org/browse/keyword/karma-preprocessor
+            preprocessors: {
+            },
+    
+    
+            // test results reporter to use
+            // possible values: 'dots', 'progress'
+            // available reporters: https://npmjs.org/browse/keyword/karma-reporter
+            reporters: ['progress'],
+    
+    
+            // web server port
+            port: 9876,
+    
+    
+            // enable / disable colors in the output (reporters and logs)
+            colors: true,
+    
+    
+            // level of logging
+            // possible values: config.LOG_DISABLE || config.LOG_ERROR || config.LOG_WARN || config.LOG_INFO || config.LOG_DEBUG
+            logLevel: config.LOG_INFO,
+    
+    
+            // enable / disable watching file and executing tests whenever any file changes
+            autoWatch: false,
+    
+    
+            // start these browsers
+            // available browser launchers: https://npmjs.org/browse/keyword/karma-launcher
+            browsers: ['PhantomJS'],
+    
+    
+            // Continuous Integration mode
+            // if true, Karma captures browsers, runs the tests and exits
+            singleRun: false
+        });
+    };
+
+Here's is what the output looks like when the `unit` task is run and a after starting up a change to `TodaysWeather.js` is saved:
+
+	> grunt unit            
+	> Running "browserify:code" (browserify) task
+	
+	> Running "browserify:test" (browserify) task
+	
+	> Running "karma:unit" (karma) task
+	
+	> Running "watch" task
+	> Waiting...
+	> >> File "node_modules/weatherly/js/model/TodaysWeather.js" changed.
+	> Running "browserify:code" (browserify) task
+	
+	> Running "browserify:test" (browserify) task
+	
+	> Running "karma:unit:run" (karma) task
+	> [2014-09-09 20:45:41.186] [DEBUG] config - Loading config /Users/gregstewart/Projects/github/weatherly/karma.conf.js
+	> PhantomJS 1.9.7 (Mac OS X): Executed 1 of 1 SUCCESS (0.003 secs / 0.002 secs)
+	
+	> Done, without errors.
+	> Completed in 2.236s at Tue Sep 09 2014 20:45:41 GMT+0100 (BST) - Waiting...
+
+Time to commit our changes back to master and push to origin:
+
+	> git add .
+	> git commit -m "Added watch task"
+	> git checkout master
+	> git merge run-tests-continuously
+	> git push
+	
 ## Adding code coverage
  * code coverage
+  
  
 #Development guided by tests 
 We'll cover: 
