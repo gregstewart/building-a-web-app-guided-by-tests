@@ -355,13 +355,28 @@ If you recall in our getting started section we set up our project and used [Bow
 
 _TODO: CommonJS vs AMD and why_
 
-To get started let's first create a our source directory for our JavaScript, we'll store our source under `src/js` and let's create a file to test our build process called TodaysWeather.js and let's save it under a sub folder called models:
+To get started first create a our source directory for our JavaScript, we'll store our source under:
+
+	> mkdir node_modules/weatherly/js
+
+Storing them under `node_modules` has a great benefit when using browserify, you no longer need require your files using relative paths such as this little beauty: 
+
+	var model = require('../../src/js/model/TodaysWeather'); 
+	
+Typing all this out will get tedius very quickly. Time for a file to test our build process, call it `TodaysWeather.js` and let's save it under a sub folder called models:
+
+	> mkdir node_modules/weatherly/js/models
+	> touch node_modules/weatherly/js/models/TodaysWeather.js
+
+And add the following to that file: 
 
     var TodaysWeather = function () {
         console.log('test');
     };
 
     module.exports = TodaysWeather;
+
+At this point you may be wondering how we are going to commit the code under `node_modules/weatherly/js`, given how we have set up our `.gitignore` file. I will come to that shortly. 
 
 With that done let's install a [grunt task](https://www.npmjs.org/package/grunt-browserify) for [Browserify](http://browserify.org/)
 
@@ -415,14 +430,12 @@ We'll skip through a few steps below and edit our `Gruntfile.js` to include the 
             	}
         	},
         	browserify: {
-                dist: {
-                    files: {
-                        'app/js/main.min.js': ['src/js/**/*.js']
-                    }
-                }
+                code: {
+                	dest: 'app/js/main.min.js',
+                	src: 'node_modules/weatherly/js/**/*.js'            				}
             }
         });
-
+        
         grunt.loadNpmTasks('grunt-express-server');
         grunt.loadNpmTasks('grunt-selenium-webdriver');
         grunt.loadNpmTasks('grunt-cucumber');
@@ -431,10 +444,9 @@ We'll skip through a few steps below and edit our `Gruntfile.js` to include the 
         grunt.loadNpmTasks('grunt-bower-task');
         grunt.loadNpmTasks('grunt-browserify');
 
-        grunt.registerTask('generate', ['less:production', 'copy:fonts', 'browserify']);
-    	grunt.registerTask('build', ['bower:install', 'generate']);
-
-        grunt.registerTask('e2e', [
+		grunt.registerTask('generate', ['less:production', 'copy:fonts', 'browserify:code']);
+		grunt.registerTask('build', ['bower:install', 'generate']);
+		grunt.registerTask('e2e', [
             'selenium_start',
             'express:test',
             'cucumberjs',
@@ -452,7 +464,6 @@ I chose to go with Uglifyify, as always let's just install it:
     npm install uglifyify --save
 
 And then edit our `Gruntfile.js` by configuring our browserify task to use it is a transform:
-
 
     module.exports = function (grunt) {
         grunt.initConfig({
@@ -498,14 +509,13 @@ And then edit our `Gruntfile.js` by configuring our browserify task to use it is
             	}
         	},
         	browserify: {
-                dist: {
-                    files: {
-                        'app/js/main.min.js': ['src/js/**/*.js']
-                    }
-                },
-                options: {
-                    transform: ['uglifyify']
-                }
+                code: {
+                	dest: 'app/js/main.min.js',
+                	src: 'node_modules/weatherly/js/**/*.js',
+                	options: {
+	                	transform: ['uglifyify']
+                	}
+            	}
             }
         });
 
@@ -612,6 +622,41 @@ Before we commit our changes let's edit our `.gitignore` file one more time and 
     app/css/
     app/fonts/
     app/js/
+
+While are here let's fix our git configuration so that it includes our app code by editing our `.gitignore` file to look as follows:
+
+	.idea
+	bower_components
+	phantomjsdriver.log
+	app/css/
+	app/fonts/
+	app/js/
+	node_modules/*
+	!node_modules/weatherly
+
+By changing the blanket exclusion rule for our `node_modules` to one using exceptions, we can now commit the `weatherly` code that sits under our `node_modules` folder. That's what the last two lines do:
+
+	node_modules/*
+	!node_modules/weatherly
+
+Now when you type `git add .` it will include all if your changes:
+
+	> git status
+	> # On branch generate-assets
+	> # Changes to be committed:
+	> #   (use "git reset HEAD <file>..." to unstage)
+	> #
+	> #	modified:   .gitignore
+	> #	modified:   Gruntfile.js
+	> #	new file:   node_modules/weatherly/js/model/TodaysWeather.js
+	> #	modified:   package.json
+	> #	modified:   app/index.html
+	> #
+	> # Changes not staged for commit:
+	> #   (use "git add/rm <file>..." to update what will be committed)
+	> #   (use "git checkout -- <file>..." to discard changes in working directory)
+	> #
+
 
 Let's commit, merge and push to our remote repository:
 

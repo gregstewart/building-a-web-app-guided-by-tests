@@ -37,30 +37,30 @@ Next we need to tackle the section: `Modify your Setup Commands`. The instructio
 In my case the output was **0.10.28**, below is my package.json file, look for the block labelled with **engines**:
 
 	{
-  		"name": "weatherly",
-  		"version": "0.0.0",
-  		"description": "Building a web app guided by tests",
-  		"main": "index.js",
-  		"engines" : {
+		"name": "weatherly",
+		"version": "0.0.0",
+		"description": "Building a web app guided by tests",
+		"main": "index.js",
+		"engines" : {
     		"node" : "~0.10.28"
-  		},
-  		"scripts": {
+		},
+		"scripts": {
     		"test": "grunt test"
-  		},
-  		"repository": {
+		},
+		"repository": {
     		"type": "git",
     		"url": "https://github.com/gregstewart/weatherly.git"
-  		},
-  		"author": "Greg Stewart",
-  		"license": "MIT",
-  		"bugs": {
+		},
+		"author": "Greg Stewart",
+		"license": "MIT",	
+		"bugs": {
     		"url": "https://github.com/gregstewart/weatherly/issues"
-  		},
-  		"homepage": "https://github.com/gregstewart/weatherly",
-  		"dependencies": {
+		},
+		"homepage": "https://github.com/gregstewart/weatherly",
+		"dependencies": {
     		"express": "^4.4.5"
-  		},
-  		"devDependencies": {
+		},
+		"devDependencies": {
     		"chai": "^1.9.1",
     		"cucumber": "^0.4.0",
     		"grunt": "^0.4.5",
@@ -68,8 +68,8 @@ In my case the output was **0.10.28**, below is my package.json file, look for t
     		"grunt-express-server": "^0.4.17",
     		"grunt-selenium-webdriver": "^0.2.420",
     		"webdriverjs": "^1.7.1"
-  		}
-	}
+    	}
+    }
 
 With that added we can edit the set up commands to look as follows:
 
@@ -119,7 +119,7 @@ We will be deploying from our `master` branch. Once you are happy with your sett
 	app.use(express.static(__dirname + '/app'));
 
 	var server = app.listen(process.env.PORT || 3000, function() {
-  		console.log('Listening on port %d', server.address().port);
+		console.log('Listening on port %d', server.address().port);
 	});
 
 Now let's commit the change:

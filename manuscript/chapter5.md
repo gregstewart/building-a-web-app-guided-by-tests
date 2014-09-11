@@ -1,18 +1,17 @@
 #Unit tests#
-Up until now we have been very much focused on setting up our build pipeline and writing a high level feature tests. And while I promised that it was time to write some code, we do have do a few more setup steps before we can get stuck in. To get confidence in our code we will be writing JavaScript modules using tests and we want those tests to run all the time (i.e. with each save). To that end we need to set up some more tasks to run those tests for us and add them to our build process.
+Up until now we have been very much focused on setting up our build pipeline and writing a high level feature tests. And while I promised that it was time to write some code, we do have do a few more setup steps to carry out before we can get stuck in. To get confidence in our code we will be writing JavaScript modules using tests and we want those tests to run all the time (i.e. with each save). To that end we need to set up some more tasks to run those tests for us and add them to our build process.
 
 ##Setting up our unit test runner using karma##
 I have chosen [Karma](https://www.npmjs.org/package/karma) as our Unit test runner, if you are new to [Karma](http://karma-runner.github.io/) I suggest you take a peak at some of the videos on the site. It comes with a variety of plugins and supports basically all of the popular unit test frameworks. As our testing framework we will use Jasmine.
 
-Before going to far, let's quickly create a few folders in the root of our project. `src/js` is where we will store all of our JavaScript source code, later on we will create a task to concatenate/minify and move it to our app folder:
+Before going to far, let's quickly create a few folders in the root of our project. You should already have a`node_modules/weatherly/src/js`, which is where we will store all of our JavaScript source code. We already have a task to concatenate/minify and move it to our app folder. Now we just need to create a `unit` folder for our unit tests. So the structure of our code and tests will look as follows:
 
 	-> tests
 		-> unit
-	-> src
-		->js
+	-> node_modules
+		-> weatherly
+			->js
 		
-_TODO: this for now but really I want to do commonJS_		
-
 As with all tasks, let's create a new branch:
 
 	> git checkout -b test-runner
@@ -44,12 +43,8 @@ This would guide you through the process of setting up your test runner, here's 
 	What is the location of your source and test files ?
 	You can use glob patterns, eg. "js/*.js" or "test/**/*Spec.js".
 	Enter empty string to move to the next question.
-	> src/js/**/*.js
-	WARN [init]: There is no file matching this pattern.
-
+	> node_modules/weatherly/js/**/*.js,
 	> tests/unit/**/*.js
-	WARN [init]: There is no file matching this pattern.
-
 	> 
 
 	Should any of the files included by the previous patterns be excluded ?
@@ -82,7 +77,7 @@ And here's the corresponding configuration that was generated:
     
             // list of files / patterns to load in the browser
             files: [
-                'src/js/**/*.js',
+                'node_modules/weatherly/js/**/*.js',
                 'tests/unit/**/*.js'
             ],
     
@@ -118,7 +113,7 @@ And here's the corresponding configuration that was generated:
     
     
             // enable / disable watching file and executing tests whenever any file changes
-            autoWatch: true,
+            autoWatch: false,
     
     
             // start these browsers
@@ -128,7 +123,7 @@ And here's the corresponding configuration that was generated:
     
             // Continuous Integration mode
             // if true, Karma captures browsers, runs the tests and exits
-            singleRun: true
+            singleRun: false
         });
     };
 
@@ -162,17 +157,60 @@ And update our Gruntfile to load the task:
                     steps: 'tests/e2e/steps/'
                 }
             },
-            karma: {
-                unit: {
-                    configFile: 'karma.conf.js'
+            less: {
+            	production: {
+                	options: {
+                    	paths: ['app/css/'],
+                    	cleancss: true
+                	},
+                	files: {
+                   		'app/css/main.css': 'src/less/main.less'
+                	}
+            	}
+        	},
+            copy: {
+                fonts: {
+                    expand: true,
+                    src: ['bower_components/bootstrap-sass-official/vendor/assets/fonts/bootstrap/*'],
+                    dest: 'app/css/bootstrap/',
+                    filter: 'isFile',
+                    flatten: true
                 }
-            }
+            },
+        	bower: {
+            	install: {
+                	options: {
+	                	cleanTargetDir:false,
+                   		targetDir: './bower_components'
+                	}
+            	}
+        	},
+        	browserify: {
+                code: {
+                	dest: 'app/js/main.min.js',
+                	src: 'node_modules/weatherly/js/**/*.js',
+                	options: {
+	                	transform: ['uglifyify']
+                	}
+            	}
+            },
+            karma: {
+            	unit: {
+	            	configFile: 'karma.conf.js'
+            	}
+        	}
         });
 
         grunt.loadNpmTasks('grunt-express-server');
         grunt.loadNpmTasks('grunt-selenium-webdriver');
         grunt.loadNpmTasks('grunt-cucumber');
-        grunt.loadNpmTasks('grunt-karma');
+        grunt.loadNpmTasks('grunt-contrib-less');
+        grunt.loadNpmTasks('grunt-contrib-copy');
+        grunt.loadNpmTasks('grunt-bower-task');
+        grunt.loadNpmTasks('grunt-browserify');
+
+        grunt.registerTask('generate', ['less:production', 'copy:fonts', 'browserify']);
+    	grunt.registerTask('build', ['bower:install', 'generate']);
 
         grunt.registerTask('e2e', [
             'selenium_start',
@@ -181,6 +219,8 @@ And update our Gruntfile to load the task:
             'selenium_stop',
             'express:test:stop'
         ]);
+
+        grunt.registerTask('heroku:production', 'build');
     };
 
 Let's try this out our new grunt task:
@@ -218,173 +258,91 @@ What we want to do know is validate our Karma configuration before we starting o
 We could try and run our Karma task again, but this would only result in an error, because we are using the [CommonJS](http://wiki.commonjs.org/wiki/CommonJS) module approach and we would see an error stating that `module` is not defined, because our module under tests uses:
 
 	module.exports = TodaysWeather;
+
+We need to somehow tell our test runner that we use the CommonJS module type and resolve `module` and `require`. Once again we will resort to a npm module: `karma-commonjs`:
+
+	> npm install karma-commonjs --save-dev
+
+Next we need to update our `karma.conf.js` file:
 	
-In order to fix this we need run our `browserify` task before our `karma` task, so let's register a new task `unit` in our grunt file to handle this:
-
-    module.exports = function (grunt) {
-        grunt.initConfig({
-            express: {
-                test: {
-                    options: {
-                        script: './server.js'
-                    }
-                }
-            },
-            cucumberjs: {
-                src: 'tests/e2e/features/',
-                options: {
-                    steps: 'tests/e2e/steps/'
-                }
-            },
-            less: {
-                production: {
-                    options: {
-                        paths: ['app/css/'],
-                        cleancss: true
-                    },
-                    files: {
-                        'app/css/main.css': 'src/less/main.less'
-                    }
-                }
-            },
-            copy: {
-                fonts: {
-                    expand: true,
-                    src: ['bower_components/bootstrap/fonts/*'],
-                    dest: 'app/fonts/',
-                    filter: 'isFile',
-                    flatten: true
-                }
-            },
-            bower: {
-                install: {
-                    options: {
-                        cleanTargetDir:false,
-                        targetDir: './bower_components'
-                    }
-                }
-            },
-            browserify: {
-                dist: {
-                    files: {
-                        'app/js/main.min.js': ['src/js/**/*.js']
-                    }
-                },
-                options: {
-                    transform: ['uglifyify']
-                }
-            },
-            karma: {
-                unit: {
-                    configFile: 'karma.conf.js'
-                }
-            }
-        });
-    
-        grunt.loadNpmTasks('grunt-express-server');
-        grunt.loadNpmTasks('grunt-selenium-webdriver');
-        grunt.loadNpmTasks('grunt-cucumber');
-        grunt.loadNpmTasks('grunt-contrib-less');
-        grunt.loadNpmTasks('grunt-contrib-copy');
-        grunt.loadNpmTasks('grunt-browserify');
-        grunt.loadNpmTasks('grunt-bower-task');
-        grunt.loadNpmTasks('grunt-karma');
-    
-        grunt.registerTask('generate', ['less:production', 'copy:fonts', 'browserify']);
-        grunt.registerTask('build', ['bower:install', 'generate']);
-        grunt.registerTask('unit', ['browserify', 'karma:unit']);
-    
-        grunt.registerTask('e2e', [
-            'selenium_start',
-            'express:test',
-            'cucumberjs',
-            'selenium_stop',
-            'express:test:stop'
-        ]);
-    
-        grunt.registerTask('heroku:production', 'build');
-    }; 
-
-And modify our `karma.conf.js` to point to the built version of our JavaScript code by updating the files block to point to `app/js/**/*.js` instead of `src/js/**/*.js`.
-
-    // Karma configuration
+	// Karma configuration
     // Generated on Sun Jul 20 2014 16:18:54 GMT+0100 (BST)
-    
+
     module.exports = function (config) {
         config.set({
-    
+
             // base path that will be used to resolve all patterns (eg. files, exclude)
             basePath: '',
-    
-    
+
+
             // frameworks to use
             // available frameworks: https://npmjs.org/browse/keyword/karma-adapter
-            frameworks: ['jasmine'],
-    
-    
+            frameworks: ['jasmine', 'commonjs'],
+
+
             // list of files / patterns to load in the browser
             files: [
-                'app/js/**/*.js',
+                'node_modules/weatherly/js/**/*.js',
                 'tests/unit/**/*.js'
             ],
-    
-    
+
+
             // list of files to exclude
             exclude: [
             ],
-    
-    
+
+
             // preprocess matching files before serving them to the browser
             // available preprocessors: https://npmjs.org/browse/keyword/karma-preprocessor
             preprocessors: {
+                'node_modules/weatherly/js/**/*.js': ['commonjs'],
+                'tests/unit/**/*.js': ['commonjs']
             },
-    
-    
+
+
             // test results reporter to use
             // possible values: 'dots', 'progress'
             // available reporters: https://npmjs.org/browse/keyword/karma-reporter
             reporters: ['progress'],
-    
-    
+
+
             // web server port
             port: 9876,
-    
-    
+
+
             // enable / disable colors in the output (reporters and logs)
             colors: true,
-    
-    
+
+
             // level of logging
             // possible values: config.LOG_DISABLE || config.LOG_ERROR || config.LOG_WARN || config.LOG_INFO || config.LOG_DEBUG
             logLevel: config.LOG_INFO,
-    
-    
+
+
             // enable / disable watching file and executing tests whenever any file changes
-            autoWatch: true,
-    
-    
+            autoWatch: false,
+
+
             // start these browsers
             // available browser launchers: https://npmjs.org/browse/keyword/karma-launcher
             browsers: ['PhantomJS'],
-    
-    
+
+
             // Continuous Integration mode
             // if true, Karma captures browsers, runs the tests and exits
             singleRun: true
         });
     };
- 
- Now let's our setup:
- 
- 	> grunt unit
-	> Running "browserify:dist" (browserify) task
 
+We added `commonjs` to the frameworks block and then configured the `preprocessor` block to process our source and test files using our chosen module type. Let's try this again:
+
+	> grunt karma:unit
 	> Running "karma:unit" (karma) task
 	> INFO [karma]: Karma v0.12.17 server started at http://localhost:9876/
 	> INFO [launcher]: Starting browser PhantomJS
-	> INFO [PhantomJS 1.9.7 (Mac OS X)]: Connected on socket 8eDrHt--bJFzVxSN36mN with id 14048651
-	> PhantomJS 1.9.7 (Mac OS X): Executed 1 of 1 SUCCESS (0.002 secs / 0.002 secs)
-
+	> INFO [PhantomJS 1.9.7 (Mac OS X)]: Connected on socket 3i335x4S_5GG88E7TsOM with id 58512369
+	> PhantomJS 1.9.7 (Mac OS X): Executed 1 of 1 SUCCESS (0.005 secs / 0.002 secs)
+	
 	> Done, without errors.
 
 Perfect!
@@ -414,50 +372,49 @@ Let's go ahead and create a task called `test` in our `Gruntfile` and configure 
                 }
             },
             less: {
-                production: {
-                    options: {
-                        paths: ['app/css/'],
-                        cleancss: true
-                    },
-                    files: {
-                        'app/css/main.css': 'src/less/main.less'
-                    }
-                }
-            },
+            	production: {
+                	options: {
+                    	paths: ['app/css/'],
+                    	cleancss: true
+                	},
+                	files: {
+                   		'app/css/main.css': 'src/less/main.less'
+                	}
+            	}
+        	},
             copy: {
                 fonts: {
                     expand: true,
-                    src: ['bower_components/bootstrap/fonts/*'],
-                    dest: 'app/fonts/',
+                    src: ['bower_components/bootstrap-sass-official/vendor/assets/fonts/bootstrap/*'],
+                    dest: 'app/css/bootstrap/',
                     filter: 'isFile',
                     flatten: true
                 }
             },
-            bower: {
-                install: {
-                    options: {
-                        cleanTargetDir:false,
-                        targetDir: './bower_components'
-                    }
-                }
-            },
-            browserify: {
-                dist: {
-                    files: {
-                        'app/js/main.min.js': ['src/js/**/*.js']
-                    }
-                },
-                options: {
-                    transform: ['uglifyify']
-                }
+        	bower: {
+            	install: {
+                	options: {
+	                	cleanTargetDir:false,
+                   		targetDir: './bower_components'
+                	}
+            	}
+        	},
+        	browserify: {
+                code: {
+                	dest: 'app/js/main.min.js',
+                	src: 'node_modules/weatherly/js/**/*.js',
+                	options: {
+	                	transform: ['uglifyify']
+                	}
+            	}
             },
             karma: {
-                unit: {
-                    configFile: 'karma.conf.js'
-                }
-            }
+            	unit: {
+	            	configFile: 'karma.conf.js'
+            	}
+        	}
         });
-    
+            
         grunt.loadNpmTasks('grunt-express-server');
         grunt.loadNpmTasks('grunt-selenium-webdriver');
         grunt.loadNpmTasks('grunt-cucumber');
@@ -467,10 +424,9 @@ Let's go ahead and create a task called `test` in our `Gruntfile` and configure 
         grunt.loadNpmTasks('grunt-bower-task');
         grunt.loadNpmTasks('grunt-karma');
     
-        grunt.registerTask('generate', ['less:production', 'copy:fonts', 'browserify']);
+        grunt.registerTask('generate', ['less:production', 'copy:fonts', 'browserify:code']);
         grunt.registerTask('build', ['bower:install', 'generate']);
-        grunt.registerTask('unit', ['browserify', 'karma:unit']);
-    
+        
         grunt.registerTask('e2e', [
             'selenium_start',
             'express:test',
@@ -527,12 +483,12 @@ If you recall we configured our build to execute `grunt e2e`, we need to update 
 
 Ready to give this is a spin? 
 
- > git status
- > git add .
- > git commit -m "Karma test configuration added and new build test task created"
- > git checkout master
- > git merge test-runner
- > git push
+ 	> git status
+ 	> git add .
+ 	> git commit -m "Karma test configuration added and new build test task created"
+ 	> git checkout master
+ 	> git merge test-runner
+ 	> git push
  
 If we keep an eye on our dashboard we should see a build kicked-off and `test` task being executed:
 
@@ -540,104 +496,13 @@ If we keep an eye on our dashboard we should see a build kicked-off and `test` t
  
 
 ## Continuously running our tests
-So far so good. While it's it's nice to have our tests execute manually, let's automate this. Could it be as simple as setting the `karma.conf.js` setting `singleRun` to `false`, well no because we also need to re-generate our source code when it changes and we also want to use CommonJS for our test files. While there is a [karma-browserify](https://github.com/xdissent/karma-browserify) pre-processor for Karma we are going to use a watch task instead.
+So far so good. While it's it's nice to have our tests execute manually, let's automate this. Could it be as simple as setting the `karma.conf.js` setting `singleRun` to `false` and `autoWatch` to `true`, well kind of. When running things on our build server we still want the single run to be true, however for local development purposes it should always run. So let's tackle this:
 
 	> git checkout -b run-tests-continuously
 
-We are going to make a number of changes now to our current setup. To start off with let's update our `Gruntfile.js`:
+Let'start by modifying our `karma.conf.js` file to run tests continuously:
 
-    module.exports = function (grunt) {
-        grunt.initConfig({
-            express: {
-                test: {
-                    options: {
-                        script: './server.js'
-                    }
-                }
-            },
-            cucumberjs: {
-                src: 'tests/e2e/features/',
-                options: {
-                    steps: 'tests/e2e/steps/'
-                }
-            },
-            less: {
-                production: {
-                    options: {
-                        paths: ['app/css/'],
-                        cleancss: true
-                    },
-                    files: {
-                        'app/css/main.css': 'src/less/main.less'
-                    }
-                }
-            },
-            copy: {
-                fonts: {
-                    expand: true,
-                    src: ['bower_components/bootstrap/fonts/*'],
-                    dest: 'app/fonts/',
-                    filter: 'isFile',
-                    flatten: true
-                }
-            },
-            bower: {
-                install: {
-                    options: {
-                        cleanTargetDir:false,
-                        targetDir: './bower_components'
-                    }
-                }
-            },
-            browserify: {
-                code: {
-                    dest: 'app/js/main.min.js',
-                    src: 'src/js/**/*.js',
-                    options: {
-                        transform: ['uglifyify'],
-                    }
-                },
-                test: {
-                    dest: 'app/js/test.js',
-                    src: 'tests/unit/**/*.js'
-                }
-            },
-            karma: {
-                unit: {
-                    configFile: 'karma.conf.js'
-              	}
-            }
-        });
-    
-        grunt.loadNpmTasks('grunt-express-server');
-        grunt.loadNpmTasks('grunt-selenium-webdriver');
-        grunt.loadNpmTasks('grunt-cucumber');
-        grunt.loadNpmTasks('grunt-contrib-less');
-        grunt.loadNpmTasks('grunt-contrib-copy');
-        grunt.loadNpmTasks('grunt-browserify');
-        grunt.loadNpmTasks('grunt-bower-task');
-        grunt.loadNpmTasks('grunt-karma');
-    
-        grunt.registerTask('generate', ['less:production', 'copy:fonts', 'browserify:code']);
-        grunt.registerTask('build', ['bower:install', 'generate']);
-        grunt.registerTask('unit', ['browserify:code', 'browserify:test', 'karma:unit']);
-    
-        grunt.registerTask('e2e', [
-            'selenium_start',
-            'express:test',
-            'cucumberjs',
-            'selenium_stop',
-            'express:test:stop'
-        ]);
-    
-        grunt.registerTask('test', ['build', 'browserify:test', 'karma:unit', 'e2e']);
-    
-        grunt.registerTask('heroku:production', 'build');
-    };
-
-What we did here was change our `browserify` task by splitting it into two tasks, one to browserify our source, another to do the same for our test code. And we updated all corresponding tasks to use the new `browserify:code` and `browserify:test` tasks. Next we need to edit our `karma.conf.js` to use the browserified test files (the files block as has been udpated to point to `app/js/test.js`):
-
-    // Karma configuration
+	    // Karma configuration
     // Generated on Sun Jul 20 2014 16:18:54 GMT+0100 (BST)
 
     module.exports = function (config) {
@@ -649,12 +514,13 @@ What we did here was change our `browserify` task by splitting it into two tasks
 
             // frameworks to use
             // available frameworks: https://npmjs.org/browse/keyword/karma-adapter
-            frameworks: ['jasmine'],
+            frameworks: ['jasmine', 'commonjs'],
 
 
             // list of files / patterns to load in the browser
             files: [
-                'app/js/test.js'
+                'node_modules/weatherly/js/**/*.js',
+                'tests/unit/**/*.js'
             ],
 
 
@@ -666,6 +532,8 @@ What we did here was change our `browserify` task by splitting it into two tasks
             // preprocess matching files before serving them to the browser
             // available preprocessors: https://npmjs.org/browse/keyword/karma-preprocessor
             preprocessors: {
+                'node_modules/weatherly/js/**/*.js': ['commonjs'],
+                'tests/unit/**/*.js': ['commonjs']
             },
 
 
@@ -699,400 +567,167 @@ What we did here was change our `browserify` task by splitting it into two tasks
 
             // Continuous Integration mode
             // if true, Karma captures browsers, runs the tests and exits
-            singleRun: true
-        });
-    };
-
-Finally we update our test file to require the model we want to test:
-
-    var TodaysWeather = require('../../../src/js/model/TodaysWeather');
-    
-    describe('Today \'s weather', function () {
-        it('should return 2', function () {
-           expect(1+1).toBe(2);
-        });
-    });
-    
-Let's test all those changes:
-
-	> grunt unit 
-	> Running "browserify:code" (browserify) task
-
-	> Running "browserify:test" (browserify) task
-
-	> Running "karma:unit" (karma) task
-	> INFO [karma]: Karma v0.12.17 server started at http://localhost:9876/
-	> INFO [launcher]: Starting browser PhantomJS
-	> INFO [PhantomJS 1.9.7 (Mac OS X)]: Connected on socket gCXA9L7Pz_xSAvSYrT6j with id 74529313
-	> PhantomJS 1.9.7 (Mac OS X): Executed 1 of 1 SUCCESS (0.005 secs / 0.002 secs)
-
-	> Done, without errors.
-
-Now having to always require your files using `require('../../../src/js/model/TodaysWeather');` will get tedius very quickly, so let's fix this. How? By moving our code into our `node_modules` folder! However as you might well realise that leaves us with a small problem, we have told git not to include our node modules in our repository. We can fix this easily as well. First things first, let's move our source into our node modules folder:
-
-	> mkdir node_modules/weatherly
-	> mv src/js/models/ node_modules/weatherly
-	
-Next let's amend our test file to point to the new location:
-
-	var TodaysWeather = require('weatherly/js/model/TodaysWeather');
-
-	describe('Today \'s weather', function () {
-    	it('should return 2', function () {
-       		expect(1+1).toBe(2);
-    	});
-	});
-	
-Much nicer already. Next we need to update our `Gruntfile.js` one more time and tell the `browserify:code` task about the new location.
-
-         module.exports = function (grunt) {
-        grunt.initConfig({
-            express: {
-                test: {
-                    options: {
-                        script: './server.js'
-                    }
-                }
-            },
-            cucumberjs: {
-                src: 'tests/e2e/features/',
-                options: {
-                    steps: 'tests/e2e/steps/'
-                }
-            },
-            less: {
-                production: {
-                    options: {
-                        paths: ['app/css/'],
-                        cleancss: true
-                    },
-                    files: {
-                        'app/css/main.css': 'src/less/main.less'
-                    }
-                }
-            },
-            copy: {
-                fonts: {
-                    expand: true,
-                    src: ['bower_components/bootstrap/fonts/*'],
-                    dest: 'app/fonts/',
-                    filter: 'isFile',
-                    flatten: true
-                }
-            },
-            bower: {
-                install: {
-                    options: {
-                        cleanTargetDir:false,
-                        targetDir: './bower_components'
-                    }
-                }
-            },
-            browserify: {
-                code: {
-                    dest: 'app/js/main.min.js',
-                    src: 'node_modules/weatherly/js/**/*.js',
-                    options: {
-                        transform: ['uglifyify']
-                    }
-                },
-                test: {
-                    dest: 'app/js/test.js',
-                    src: 'tests/unit/**/*.js'
-                }
-            },
-            karma: {
-                unit: {
-                    configFile: 'karma.conf.js'
-                }
-            }
-        });
-    
-        grunt.loadNpmTasks('grunt-express-server');
-        grunt.loadNpmTasks('grunt-selenium-webdriver');
-        grunt.loadNpmTasks('grunt-cucumber');
-        grunt.loadNpmTasks('grunt-contrib-less');
-        grunt.loadNpmTasks('grunt-contrib-copy');
-        grunt.loadNpmTasks('grunt-browserify');
-        grunt.loadNpmTasks('grunt-bower-task');
-        grunt.loadNpmTasks('grunt-karma');
-    
-        grunt.registerTask('generate', ['less:production', 'copy:fonts', 'browserify:code']);
-        grunt.registerTask('build', ['bower:install', 'generate']);
-        grunt.registerTask('unit', ['browserify:code', 'browserify:test', 'karma:unit']);
-    
-        grunt.registerTask('e2e', [
-            'selenium_start',
-            'express:test',
-            'cucumberjs',
-            'selenium_stop',
-            'express:test:stop'
-        ]);
-    
-        grunt.registerTask('test', ['build', 'browserify:test', 'karma:unit', 'e2e']);
-    
-        grunt.registerTask('heroku:production', 'build');
-    };
-    
-OK let's do another sanity check that our tests still run:
-
-	> grunt unit                         
-	> Running "browserify:code" (browserify) task
-
-	> Running "browserify:test" (browserify) task
-
-	> Running "karma:unit" (karma) task
-	> INFO [karma]: Karma v0.12.17 server started at http://localhost:9876/
-	> INFO [launcher]: Starting browser PhantomJS
-	> INFO [PhantomJS 1.9.7 (Mac OS X)]: Connected on socket 1fgzXajxHhOR0iscvurm with id 93049843
-	> PhantomJS 1.9.7 (Mac OS X): Executed 1 of 1 SUCCESS (0.005 secs / 0.002 secs)
-    
-Not let's fix our git configuration so that it includes our app code by editing our `.gitignore` file to look as follows:
-
-	.idea
-	bower_components
-	phantomjsdriver.log
-	app/css/
-	app/fonts/
-	app/js/
-	node_modules/*
-	!node_modules/weatherly
-
-By changing the blanket exclusion rule for our `node_modules` to one using exceptions, that's what the last two lines do, exclude all modules apart from our `weatherly` one:
-
-	node_modules/*
-	!node_modules/weatherly
-
-Now when you type `git add .` it will include all if your changes:
-
-	> git status
-	> # On branch run-tests-continuously
-	> # Changes to be committed:
-	> #   (use "git reset HEAD <file>..." to unstage)
-	> #
-	> #	modified:   .gitignore
-	> #	modified:   Gruntfile.js
-	> #	modified:   karma.conf.js
-	> #	new file:   node_modules/weatherly/js/model/TodaysWeather.js
-	> #	modified:   package.json
-	> #	modified:   tests/unit/model/TodaysWeather-spec.js
-	> #
-	> # Changes not staged for commit:
-	> #   (use "git add/rm <file>..." to update what will be committed)
-	> #   (use "git checkout -- <file>..." to discard changes in working directory)
-	> #
-	> #	deleted:    src/js/model/TodaysWeather.js
-	> #
-
-Let's also tell git to delete our old `src/js/model/TodaysWeather.js`:
-
-	> git rm src/js/model/TodaysWeather.js
-	
-Before moving on, let's commit all of the changes:
-
-	> git commit - m "tests browserified"
-	
-Time to now turn our attention to adding a watch task to run our tests on any file change. Let's start by adding [grunt-contrib-watch](https://www.npmjs.org/package/grunt-contrib-watch):
-
-	> npm install grunt-contrib-watch --save-dev
-	
-With that done, we need to update our `Gruntfile.js`:
-
-     module.exports = function (grunt) {
-        grunt.initConfig({
-            express: {
-                test: {
-                    options: {
-                        script: './server.js'
-                    }
-                }
-            },
-            cucumberjs: {
-                src: 'tests/e2e/features/',
-                options: {
-                    steps: 'tests/e2e/steps/'
-                }
-            },
-            less: {
-                production: {
-                    options: {
-                        paths: ['app/css/'],
-                        cleancss: true
-                    },
-                    files: {
-                        'app/css/main.css': 'src/less/main.less'
-                    }
-                }
-            },
-            copy: {
-                fonts: {
-                    expand: true,
-                    src: ['bower_components/bootstrap/fonts/*'],
-                    dest: 'app/fonts/',
-                    filter: 'isFile',
-                    flatten: true
-                }
-            },
-            bower: {
-                install: {
-                    options: {
-                        cleanTargetDir:false,
-                        targetDir: './bower_components'
-                    }
-                }
-            },
-            browserify: {
-                code: {
-                    dest: 'app/js/main.min.js',
-                    src: 'node_modules/weatherly/js/**/*.js',
-                    options: {
-                        transform: ['uglifyify']
-                    }
-                },
-                test: {
-                    dest: 'app/js/test.js',
-                    src: 'tests/unit/**/*.js'
-                }
-            },
-            karma: {
-                unit: {
-                    configFile: 'karma.conf.js',
-                    background: true
-                }
-            },
-	        watch: {
-    	        files: ['node_modules/weatherly/js/**/*.js', 'tests/unit/**/*.js'],
-        	    tasks: [ 'browserify:code', 'browserify:test', 'karma:unit:run']
-        	}
-    	});
-    
-        grunt.loadNpmTasks('grunt-express-server');
-        grunt.loadNpmTasks('grunt-selenium-webdriver');
-        grunt.loadNpmTasks('grunt-cucumber');
-        grunt.loadNpmTasks('grunt-contrib-less');
-        grunt.loadNpmTasks('grunt-contrib-copy');
-        grunt.loadNpmTasks('grunt-browserify');
-        grunt.loadNpmTasks('grunt-bower-task');
-        grunt.loadNpmTasks('grunt-karma');
-        grunt.loadNpmTasks('grunt-contrib-watch');
-    
-        grunt.registerTask('generate', ['less:production', 'copy:fonts', 'browserify:code']);
-        grunt.registerTask('build', ['bower:install', 'generate']);
-        grunt.registerTask('unit', ['browserify:code', 'browserify:test', 'karma:unit', 'watch']);
-    
-        grunt.registerTask('e2e', [
-            'selenium_start',
-            'express:test',
-            'cucumberjs',
-            'selenium_stop',
-            'express:test:stop'
-        ]);
-    
-        grunt.registerTask('test', ['build', 'browserify:test', 'karma:unit', 'e2e']);
-    
-        grunt.registerTask('heroku:production', 'build');
-    };
-    
-We did a few things here. Loaded our new watch module and added a task for it. That task would for one browserify both of our test files and source files when they change and run our our Karma unit task. The `karma:unit` was also slightly modified, by adding the `background: true` option. The last change was to add the `watch` task to the `unit` task. 
-
-Next we need to make a couple of changes to our `karma.conf.js` file. Two options need to changed form `true` to `false`, namely `autoWatch` and `singleRun`:
-
-    // Karma configuration
-    // Generated on Sun Jul 20 2014 16:18:54 GMT+0100 (BST)
-    
-    module.exports = function (config) {
-        config.set({
-    
-            // base path that will be used to resolve all patterns (eg. files, exclude)
-            basePath: '',
-    
-    
-            // frameworks to use
-            // available frameworks: https://npmjs.org/browse/keyword/karma-adapter
-            frameworks: ['jasmine'],
-    
-    
-            // list of files / patterns to load in the browser
-            files: [
-                'app/js/test.js'
-            ],
-    
-    
-            // list of files to exclude
-            exclude: [
-            ],
-    
-    
-            // preprocess matching files before serving them to the browser
-            // available preprocessors: https://npmjs.org/browse/keyword/karma-preprocessor
-            preprocessors: {
-            },
-    
-    
-            // test results reporter to use
-            // possible values: 'dots', 'progress'
-            // available reporters: https://npmjs.org/browse/keyword/karma-reporter
-            reporters: ['progress'],
-    
-    
-            // web server port
-            port: 9876,
-    
-    
-            // enable / disable colors in the output (reporters and logs)
-            colors: true,
-    
-    
-            // level of logging
-            // possible values: config.LOG_DISABLE || config.LOG_ERROR || config.LOG_WARN || config.LOG_INFO || config.LOG_DEBUG
-            logLevel: config.LOG_INFO,
-    
-    
-            // enable / disable watching file and executing tests whenever any file changes
-            autoWatch: false,
-    
-    
-            // start these browsers
-            // available browser launchers: https://npmjs.org/browse/keyword/karma-launcher
-            browsers: ['PhantomJS'],
-    
-    
-            // Continuous Integration mode
-            // if true, Karma captures browsers, runs the tests and exits
             singleRun: false
         });
     };
 
-Here's is what the output looks like when the `unit` task is run and a after starting up a change to `TodaysWeather.js` is saved:
+Try this out by running `grunt karma:unit` and after the first run has completed making a change to our source `TodaysWeather` file:
 
-	> grunt unit            
-	> Running "browserify:code" (browserify) task
-	
-	> Running "browserify:test" (browserify) task
-	
+	> grunt karma:unit
 	> Running "karma:unit" (karma) task
+	> INFO [karma]: Karma v0.12.17 server started at http://localhost:9876/
+	> INFO [launcher]: Starting browser PhantomJS
+	> INFO [PhantomJS 1.9.7 (Mac OS X)]: Connected on socket 9k2m2-j9Ets37p7sWD2Y with id 21051890
+	> PhantomJS 1.9.7 (Mac OS X): Executed 1 of 1 SUCCESS (0.007 secs / 0.003 secs)
+	> INFO [watcher]: Changed file "/Users/gregstewart/Projects/github/weatherly/node_modules/weatherly/js/model/TodaysWeather.js".
+	> PhantomJS 1.9.7 (Mac OS X): Executed 1 of 1 SUCCESS (0.005 secs / 0.002 secs)
+
+Exactly what we wanted. Let's now tackle our build versus development problem. We will just create a seperate build task that uses the same configuration file but overrides the properties we need for our build environment:
+
+
+    module.exports = function (grunt) {
+        grunt.initConfig({
+            express: {
+                test: {
+                    options: {
+                        script: './server.js'
+                    }
+                }
+            },
+            cucumberjs: {
+                src: 'tests/e2e/features/',
+                options: {
+                    steps: 'tests/e2e/steps/'
+                }
+            },
+            less: {
+            	production: {
+                	options: {
+                    	paths: ['app/css/'],
+                    	cleancss: true
+                	},
+                	files: {
+                   		'app/css/main.css': 'src/less/main.less'
+                	}
+            	}
+        	},
+            copy: {
+                fonts: {
+                    expand: true,
+                    src: ['bower_components/bootstrap-sass-official/vendor/assets/fonts/bootstrap/*'],
+                    dest: 'app/css/bootstrap/',
+                    filter: 'isFile',
+                    flatten: true
+                }
+            },
+        	bower: {
+            	install: {
+                	options: {
+	                	cleanTargetDir:false,
+                   		targetDir: './bower_components'
+                	}
+            	}
+        	},
+        	browserify: {
+                code: {
+                	dest: 'app/js/main.min.js',
+                	src: 'node_modules/weatherly/js/**/*.js',
+                	options: {
+	                	transform: ['uglifyify']
+                	}
+            	}
+            },
+            karma: {
+            	dev: {
+                	configFile: 'karma.conf.js'
+            	},
+	            ci: {
+    	            configFile: 'karma.conf.js',
+        	        singleRun: true,
+            	    autoWatch: false
+            	}
+        	}
+        });
+            
+        grunt.loadNpmTasks('grunt-express-server');
+        grunt.loadNpmTasks('grunt-selenium-webdriver');
+        grunt.loadNpmTasks('grunt-cucumber');
+        grunt.loadNpmTasks('grunt-contrib-less');
+        grunt.loadNpmTasks('grunt-contrib-copy');
+        grunt.loadNpmTasks('grunt-browserify');
+        grunt.loadNpmTasks('grunt-bower-task');
+        grunt.loadNpmTasks('grunt-karma');
+    
+        grunt.registerTask('generate', ['less:production', 'copy:fonts', 'browserify:code']);
+        grunt.registerTask('build', ['bower:install', 'generate']);
+        
+        grunt.registerTask('e2e', [
+            'selenium_start',
+            'express:test',
+            'cucumberjs',
+            'selenium_stop',
+            'express:test:stop'
+        ]);
+    
+        grunt.registerTask('test', ['build', 'karma:ci', 'e2e']);
+    
+        grunt.registerTask('heroku:production', 'build');
+    };	 
+    
+I took the chance to rename the `karma:unit` task to `karma:dev` and create a `karma:ci` task. The next thing was update the `test` task to also execute `karma:ci` instead of `karma:unit`. 
+
+Let's test all those changes:
+
+	> grunt test       
+	> Running "bower:install" (bower) task
+	> >> Installed bower packages
+	> >> Copied packages to /Users/gregstewart/Projects/github/weatherly/bower_components
 	
-	> Running "watch" task
-	> Waiting...
-	> >> File "node_modules/weatherly/js/model/TodaysWeather.js" changed.
+	> Running "less:production" (less) task
+	> File app/css/main.css created: 131.45 kB → 108.43 kB
+	
+	> Running "copy:fonts" (copy) task
+	> Copied 4 files
+	
 	> Running "browserify:code" (browserify) task
 	
-	> Running "browserify:test" (browserify) task
+	> Running "karma:ci" (karma) task
+	> INFO [karma]: Karma v0.12.17 server started at http://localhost:9876/
+	> INFO [launcher]: Starting browser PhantomJS
+	> INFO [PhantomJS 1.9.7 (Mac OS X)]: Connected on socket 67MYRP0HFPzhHE9wY3vt with id 58848767
+	> PhantomJS 1.9.7 (Mac OS X): Executed 1 of 1 SUCCESS (0.002 secs / 0.002 secs)
 	
-	> Running "karma:unit:run" (karma) task
-	> [2014-09-09 20:45:41.186] [DEBUG] config - Loading config /Users/gregstewart/Projects/github/weatherly/karma.conf.js
-	> PhantomJS 1.9.7 (Mac OS X): Executed 1 of 1 SUCCESS (0.003 secs / 0.002 secs)
+	> Running "selenium_start" task
+	> seleniumrc webdriver ready on 127.0.0.1:4444
+	
+	> Running "express:test" (express) task
+	> Starting background Express server
+	> Listening on port 3000
+	
+	> Running "cucumberjs:src" (cucumberjs) task
+	> ...
+	
+	> 1 scenario (1 passed)
+	> 3 steps (3 passed)
+	
+	> Running "selenium_stop" task
+	
+	> Running "express:test:stop" (express) task
+	> Stopping Express server
 	
 	> Done, without errors.
-	> Completed in 2.236s at Tue Sep 09 2014 20:45:41 GMT+0100 (BST) - Waiting...
 
-Time to commit our changes back to master and push to origin:
+Time to commit our changes back to master and push to origin and see the whole thing go through our build pipeline:
 
 	> git add .
-	> git commit -m "Added watch task"
+	> git commit -m "Run tests continuously in dev and single run on CI"
 	> git checkout master
 	> git merge run-tests-continuously
 	> git push
+	
+Now check your CI server and you should see the following if it all went to plan:
+
+![Codeship dashboard with updated ci test configuration](images/Screenshot 2014-09-11 21.40.18.png)
 	
 ## Adding code coverage
  * code coverage

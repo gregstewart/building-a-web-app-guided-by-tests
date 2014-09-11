@@ -35,28 +35,26 @@ From a folder perspective I like to create a distribution folder and an app fold
 We'll start by using bower to grab some of our front end dependencies. Let's start by creating a bower.json file by typing `bower init`, fill in the details as you see fit, but here's what I selected:
 
 	{
-  		name: 'weatherly',
-  		version: '0.0.0',
-  		authors: [
-    		'Greg Stewart <gregs@tcias.co.uk>'
-  		],
-  		description: 'Building a web app guided by tests',
-  		moduleType: [
-    		'amd'
-  		],
-  		license: 'MIT',
-  		homepage: 'http://www.tcias.co.uk/',
-  		private: true,
-  		ignore: [
+		name: 'weatherly',
+		version: '0.0.0',
+		authors: [
+    		'Greg Stewart <gregs@tcias.co.uk>'	
+    	],
+		description: 'Building a web app guided by tests',
+		moduleType: [
+    		'commonjs'
+		],
+		license: 'MIT',
+		homepage: 'http://www.tcias.co.uk/',	
+		private: true,
+		ignore: [
     		'**/.*',
     		'node_modules',
     		'bower_components',
     		'test',
     		'tests'
-  		]
+		]
 	}	
-
-__TODO switch moduleType to commonJS__
 
 Everybody likes a bit of Bootstrap so let's start with that package :
 

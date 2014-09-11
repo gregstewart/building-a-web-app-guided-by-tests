@@ -43,22 +43,22 @@ Typing `npm init` allows us to create our package.json, here's what I answered w
 	About to write to /Users/gregstewart/Projects/github/weatherly/package.json:
 
 	{
-  		"name": "weatherly",
-  		"version": "0.0.0",
-  		"description": "Building a web app guided by tests",
-  		"main": "index.js",
-  		"scripts": {
+		"name": "weatherly",
+		"version": "0.0.0",
+		"description": "Building a web app guided by tests",
+		"main": "index.js",
+		"scripts": {
     		"test": "grunt test"
-  		},
-  		"repository": {
+    	},
+    	"repository": {
     		"type": "git",
     		"url": "https://github.com/gregstewart/weatherly.git"
-  		},
-  		"author": "Greg Stewart",
-  		"license": "MIT",
-  		"bugs": {
+    	},
+    	"author": "Greg Stewart",
+    	"license": "MIT",
+    	"bugs": {
     		"url": "https://github.com/gregstewart/weatherly/issues"
-  		},
+    	},
 	  	"homepage": "https://github.com/gregstewart/weatherly"
 	}
 
@@ -76,8 +76,8 @@ Now let's go ahead and install a web server module. We'll just use [express](htt
 Similar to how we used Bower, by specifying `--save` the dependecy was added to our `package.json` file, if you open it up you should see the following toward the end of the file:
 
 	"dependencies": {
-   		"express": "^4.4.5"
-  	}
+		"express": "^4.4.5"
+	}
 
 Next create a new file called `server.js` in the root of our project and add the following content:
 
@@ -125,15 +125,15 @@ We could install the binaries manually, but since I plan using Grunt to automate
 We use the `--save-dev` flag to indicate that we want to add this dependency to our package.json file, however only for development purposes (meaning that when we deploy to our 'production' environment, e.g. Heroku, it won't install the package during deployment). With that done let's create a Grunt task to start the Selenium server (just in case you missed it in the [Getting Started section]() you can find more information on Grunt and tasks over at [the official Grunt.js website](http://gruntjs.com/getting-started)). The first thing we'll need is a `Gruntfile.js`, so add one to the root of your project and edit it to contain the following:
 
 	module.exports = function(grunt) {
-  		grunt.initConfig({
-  		});
-
-  		grunt.loadNpmTasks('grunt-selenium-webdriver');
-
-  		grunt.registerTask('e2e', [
+		grunt.initConfig({
+		});
+		
+		grunt.loadNpmTasks('grunt-selenium-webdriver');
+		
+		grunt.registerTask('e2e', [
     		'selenium_start',
     		'selenium_stop'
-  		]);
+    	]);
 	};
 
 Save the changes and at the command line type: `grunt e2e` and you should see something like this:
@@ -155,7 +155,7 @@ Let's also add a step to stop and start our web server when we are running our f
 And we'll edit our Grunt file so that it looks for our `server.js` and we can control the starting and stopping of our server:
 
 	module.exports = function(grunt) {
-  		grunt.initConfig({
+		grunt.initConfig({
     		express: {
       			test: {
         			options: {
@@ -163,17 +163,17 @@ And we'll edit our Grunt file so that it looks for our `server.js` and we can co
         			}
       			}
     		}
-  		});
-
-  		grunt.loadNpmTasks('grunt-express-server');
-  		grunt.loadNpmTasks('grunt-selenium-webdriver');
-
-  		grunt.registerTask('e2e', [
+    	});
+    	
+    	grunt.loadNpmTasks('grunt-express-server');
+    	grunt.loadNpmTasks('grunt-selenium-webdriver');
+    	
+    	grunt.registerTask('e2e', [
     		'selenium_start',
     		'express:test',
     		'selenium_stop',
     		'express:test:stop'
-  		]);
+    		]);
 	};
 
 If we now run `grunt e2e`, we should see the following output:
@@ -208,7 +208,7 @@ Features are written using the [Gherkin syntax](https://github.com/cucumber/cucu
 
 	Feature: Using our awesome weather app
 		As a user of weatherly
- 		I should be able to see the weather information for my location
+		I should be able to see the weather information for my location
 
 		Scenario: Viewing the homepage
     		Given I am on the home page
@@ -227,18 +227,18 @@ If we were to run our cucumber tests now using `> cucumber.js tests/e2e/features
 	You can implement step definitions for undefined steps with these snippets:
 
 	this.Given(/^I am on the home page$/, function (callback) {
-  		// express the regexp above with the code you wish you had
-  		callback.pending();
+		// express the regexp above with the code you wish you had
+		callback.pending();
 	});
 
 	this.When(/^I view the main content area$/, function (callback) {
-  		// express the regexp above with the code you wish you had
-  		callback.pending();
+		// express the regexp above with the code you wish you had
+		callback.pending();
 	});
 
 	this.Then(/^I should see the temperature for my location$/, function (callback) {
-  		// express the regexp above with the code you wish you had
-  		callback.pending();
+		// express the regexp above with the code you wish you had
+		callback.pending();
 	});
 
 This is extremely useful output. While it's clear that the code to execute the steps in the feature are undefined, the output actually gives snippets to create our step definitions. So let's go ahead and create our step definition. Inside of our functional test folder, create a `steps` folder and add a file called `using-weatherly-step-definitions.js` with the following content:
@@ -286,24 +286,23 @@ Here's our world object (`world.js`), which we save into a folder called support
 
 	var client = webdriverjs.remote({ desiredCapabilities: {browserName: 'phantomjs'}, logLevel: 'silent' });
 
-	client.addCommand('hasText', function (selector, text, callback) {
-  		this.getText(selector, function (error, result) {
+	client.addCommand('hasText', function (selector, text, callback) {		this.getText(selector, function (error, result) {
     		expect(result).to.have.string(text);
     		callback();
-  		});
+		});
 	});
 
 	client.init();
 
 
 	var World = function World(callback) {
-  		this.browser = client;
-
-  		this.visit = function(url, callback) {
+		this.browser = client;
+		
+		this.visit = function(url, callback) {
     		this.browser.url(url, callback);
-  		};
-
-  		callback(); // tell Cucumber we're finished and to use 'this' as the world instance
+    	};
+    	
+    	callback(); // tell Cucumber we're finished and to use 'this' as the world instance
 	};
 
 	exports.World = World;
@@ -349,7 +348,7 @@ If we were to once again try and execute our feature test, we would get an error
 And let's edit our `Gruntfile.js` to look like this now:
 
 	module.exports = function(grunt) {
-  		grunt.initConfig({
+		grunt.initConfig({
     		express: {
       			test: {
         			options: {
@@ -363,19 +362,19 @@ And let's edit our `Gruntfile.js` to look like this now:
         			steps: 'tests/e2e/steps/'
       			}
     		}
-  		});
-
-  		grunt.loadNpmTasks('grunt-express-server');
-  		grunt.loadNpmTasks('grunt-selenium-webdriver');
-  		grunt.loadNpmTasks('grunt-cucumber');
-
-  		grunt.registerTask('e2e', [
+		});
+		
+		grunt.loadNpmTasks('grunt-express-server');
+		grunt.loadNpmTasks('grunt-selenium-webdriver');
+		grunt.loadNpmTasks('grunt-cucumber');
+		
+		grunt.registerTask('e2e', [
     		'selenium_start',
     		'express:test',
     		'cucumberjs',
     		'selenium_stop',
     		'express:test:stop'
-  		]);
+		]);
 	};
 
 Now type `> grunt e2e` and you should see the following output:
