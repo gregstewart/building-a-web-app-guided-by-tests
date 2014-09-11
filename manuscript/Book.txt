@@ -2,6 +2,6 @@ chapter1.md
 chapter2.md
 chapter3.md
 chapter4.md
-building_our_assets.md
 chapter5.md
 chapter6.md
+chapter7.md
