@@ -584,7 +584,6 @@ Try this out by running `grunt karma:unit` and after the first run has completed
 
 Exactly what we wanted. Let's now tackle our build versus development problem. We will just create a seperate build task that uses the same configuration file but overrides the properties we need for our build environment:
 
-
     module.exports = function (grunt) {
         grunt.initConfig({
             express: {
@@ -730,12 +729,228 @@ Now check your CI server and you should see the following if it all went to plan
 ![Codeship dashboard with updated ci test configuration](images/Screenshot 2014-09-11 21.40.18.png)
 	
 ## Adding code coverage
- * code coverage
+A little bonus while we are setting up test infrastructure, code coverage. Now code coverage is one of these topics that sparks almost fanatical discussions, however I find a useful tool to make sure I have covered all of the important parts of my code. Lucky for us, it's easy to add support to Karma all we need is a plugin:
+
+	> git checkout -b code-coverage
+	> npm install karma-coverage --save-dev
+	
+And modify our `karma.conf.js` file: 
+
+    // Karma configuration
+    // Generated on Sun Jul 20 2014 16:18:54 GMT+0100 (BST)
+    
+    module.exports = function (config) {
+        config.set({
+    
+            // base path that will be used to resolve all patterns (eg. files, exclude)
+            basePath: '',
+    
+    
+            // frameworks to use
+            // available frameworks: https://npmjs.org/browse/keyword/karma-adapter
+            frameworks: ['jasmine', 'commonjs'],
+    
+    
+            // list of files / patterns to load in the browser
+            files: [
+                'node_modules/weatherly/js/**/*.js',
+                'tests/unit/**/*.js'
+            ],
+    
+    
+            // list of files to exclude
+            exclude: [
+            ],
+    
+    
+            // preprocess matching files before serving them to the browser
+            // available preprocessors: https://npmjs.org/browse/keyword/karma-preprocessor
+            preprocessors: {
+                'node_modules/weatherly/js/**/*.js': ['commonjs', 'coverage'],
+                'tests/unit/**/*.js': ['commonjs'],
+            },
+    
+    
+            // test results reporter to use
+            // possible values: 'dots', 'progress'
+            // available reporters: https://npmjs.org/browse/keyword/karma-reporter
+            reporters: ['progress', 'coverage'],
+    
+            coverageReporter: {
+                reporters: [
+                    { type: 'html'},
+                    { type: 'text-summary' }
+                ],
+                dir: 'reports/coverage'
+            },
+    
+            // web server port
+            port: 9876,
+    
+    
+            // enable / disable colors in the output (reporters and logs)
+            colors: true,
+    
+    
+            // level of logging
+            // possible values: config.LOG_DISABLE || config.LOG_ERROR || config.LOG_WARN || config.LOG_INFO || config.LOG_DEBUG
+            logLevel: config.LOG_INFO,
+    
+    
+            // enable / disable watching file and executing tests whenever any file changes
+            autoWatch: true,
+    
+    
+            // start these browsers
+            // available browser launchers: https://npmjs.org/browse/keyword/karma-launcher
+            browsers: ['PhantomJS'],
+    
+    
+            // Continuous Integration mode
+            // if true, Karma captures browsers, runs the tests and exits
+            singleRun: false
+        });
+    };
+
+Running our `grunt karma:dev` task yields the following output:
+
+	> Running "karma:dev" (karma) task
+	> INFO [karma]: Karma v0.12.17 server started at http://localhost:9876/
+	> INFO [launcher]: Starting browser PhantomJS
+	> INFO [PhantomJS 1.9.7 (Mac OS X)]: Connected on socket OVbmSp9OmFMK23l5jA2J with id 80988698
+	> PhantomJS 1.9.7 (Mac OS X): Executed 1 of 1 SUCCESS (0.005 secs / 0.002 secs)
+	
+	> =============================== Coverage summary ===============================
+	> Statements   : 83.33% ( 5/6 )
+	> Branches     : 100% ( 2/2 )
+	> Functions    : 50% ( 1/2 )
+	> Lines        : 66.67% ( 2/3 )
+	> ================================================================================
+	> ^C
+	> Done, without errors.
   
+There's more information in the shape of an HTML report to be found under `reports/coverage/`. Here's a what that looks like
+
+![Istanbule code coverage report](images/Screenshot 2014-09-11 22.14.57.png)
  
-#Development guided by tests 
-We'll cover: 
- * unit tests
- * integration test
- * using stubs
- * using mocks
+One final thing before we close off this section. You may not want to run your coverage report as part the CI process. If you do then ignore this part. By editing our `Gruntfile` and for our `karma:ci` task overriding the reporter step with `reporters: ['progress']` we can skip this step for our build.
+
+    module.exports = function (grunt) {
+        grunt.initConfig({
+            express: {
+                test: {
+                    options: {
+                        script: './server.js'
+                    }
+                }
+            },
+            cucumberjs: {
+                src: 'tests/e2e/features/',
+                options: {
+                    steps: 'tests/e2e/steps/'
+                }
+            },
+            less: {
+            	production: {
+                	options: {
+                    	paths: ['app/css/'],
+                    	cleancss: true
+                	},
+                	files: {
+                   		'app/css/main.css': 'src/less/main.less'
+                	}
+            	}
+        	},
+            copy: {
+                fonts: {
+                    expand: true,
+                    src: ['bower_components/bootstrap-sass-official/vendor/assets/fonts/bootstrap/*'],
+                    dest: 'app/css/bootstrap/',
+                    filter: 'isFile',
+                    flatten: true
+                }
+            },
+        	bower: {
+            	install: {
+                	options: {
+	                	cleanTargetDir:false,
+                   		targetDir: './bower_components'
+                	}
+            	}
+        	},
+        	browserify: {
+                code: {
+                	dest: 'app/js/main.min.js',
+                	src: 'node_modules/weatherly/js/**/*.js',
+                	options: {
+	                	transform: ['uglifyify']
+                	}
+            	}
+            },
+            karma: {
+            	dev: {
+                	configFile: 'karma.conf.js'
+            	},
+	            ci: {
+    	            configFile: 'karma.conf.js',
+        	        singleRun: true,
+            	    autoWatch: false,
+            	    reporters: ['progress']
+            	}
+        	}
+        });
+            
+        grunt.loadNpmTasks('grunt-express-server');
+        grunt.loadNpmTasks('grunt-selenium-webdriver');
+        grunt.loadNpmTasks('grunt-cucumber');
+        grunt.loadNpmTasks('grunt-contrib-less');
+        grunt.loadNpmTasks('grunt-contrib-copy');
+        grunt.loadNpmTasks('grunt-browserify');
+        grunt.loadNpmTasks('grunt-bower-task');
+        grunt.loadNpmTasks('grunt-karma');
+    
+        grunt.registerTask('generate', ['less:production', 'copy:fonts', 'browserify:code']);
+        grunt.registerTask('build', ['bower:install', 'generate']);
+        
+        grunt.registerTask('e2e', [
+            'selenium_start',
+            'express:test',
+            'cucumberjs',
+            'selenium_stop',
+            'express:test:stop'
+        ]);
+    
+        grunt.registerTask('test', ['build', 'karma:ci', 'e2e']);
+    
+        grunt.registerTask('heroku:production', 'build');
+    };
+  
+We also do not want to commit our reports to our repos, so another `.gitignore` tweak is needed:
+
+	.idea
+	bower_components
+	reports
+    phantomjsdriver.log
+	app/css
+	app/fonts
+	app/js
+	node_modules/*
+	!node_modules/weatherly
+	
+Time to commit and merge our changes:
+	
+	> git add .	
+	> git commit -m "added coverage to dev process"
+	> git checkout master
+	> git merge code-coverage 
+	> git push
+	
+## Recap
+We covered quite a bit of ground here:
+
+* we set up Karma
+* wrote a very basic unit test to validate the test runner was working
+* configured the tests for local continuous testing and single run during the build
+* added code coverage to our tooling
+
+With that onwards to development guided by tests!

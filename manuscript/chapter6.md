@@ -1,11 +1,19 @@
+#Development guided by tests 
+We'll cover: 
+
+* unit tests
+* integration test
+* using stubs
+* using mocks
+
 * other
- * isomorphic apps
- * react for template rendering
- * bake in performance testing (phantomas: https://github.com/macbre/phantomas)
- * static analysis (https://github.com/es-analysis/plato / code climate)
- * Shrinwrap and locking npm module versions
- * package the whole thing as an npm package
- * refactor grunt file to use modules
+	* isomorphic apps
+ 	* react for template rendering
+ 	* bake in performance testing (phantomas: https://github.com/macbre/phantomas)
+ 	* static analysis (https://github.com/es-analysis/plato / code climate)
+ 	* Shrinwrap and locking npm module versions
+ 	* package the whole thing as an npm package
+ 	* refactor grunt file to use modules
 
 #TODO#
 Netx steps:
