@@ -80,6 +80,7 @@ When you run `grunt generate`, you should see the following output:
 If you were to start up our server and browse to localhost:3000, our UI should have more of a Bootstrap feel to it!
 
 ![Rendered HTML with generated css](images/Screenshot 2014-07-20 23.00.00.png)
+
 Now bootstrap also needs some fonts, so let's move these across as part of the build.
 
 	npm install grunt-contrib-copy --save-dev
