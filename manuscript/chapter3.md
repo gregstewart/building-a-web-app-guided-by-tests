@@ -297,7 +297,7 @@ Here's our world object (`world.js`), which we save into a folder called support
 
 	var World = function World(callback) {
 		this.browser = client;
-		
+		this.port = process.env.PORT || 3000;
 		this.visit = function(url, callback) {
     		this.browser.url(url, callback);
     	};
@@ -325,7 +325,7 @@ Now let's re-visit our `using-weatherly-step-definitions.js` and replace the con
     	this.World = require("../support/world.js").World;
 
 	    this.Given(/^I am on the home page$/, function (callback) {
-      		this.visit('http://localhost:3000/', callback);
+      		this.visit('http://localhost:' + this.port + '/', callback);
     	});
 
     	this.When(/^I view the main content area$/, function (callback) {
