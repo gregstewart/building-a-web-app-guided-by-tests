@@ -4,7 +4,7 @@ Up until now we have been very much focused on setting up our build pipeline and
 ##Setting up our unit test runner using karma##
 I have chosen [Karma](https://www.npmjs.org/package/karma) as our Unit test runner, if you are new to [Karma](http://karma-runner.github.io/) I suggest you take a peak at some of the videos on the site. It comes with a variety of plugins and supports basically all of the popular unit test frameworks. As our testing framework we will use Jasmine.
 
-Before going to far, let's quickly create a few folders in the root of our project. You should already have a`node_modules/weatherly/src/js`, which is where we will store all of our JavaScript source code. We already have a task to concatenate/minify and move it to our app folder. Now we just need to create a `unit` folder for our unit tests. So the structure of our code and tests will look as follows:
+Before going to far, let's quickly create a few folders in the root of our project. You should already have a `node_modules/weatherly/src/js`, which is where we will store all of our JavaScript source code. We already have a task to concatenate/minify and move it to our app folder. Now we just need to create a `unit` folder for our unit tests. So the structure of our code and tests will look as follows:
 
 	-> tests
 		-> unit
