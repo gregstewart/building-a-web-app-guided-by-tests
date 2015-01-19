@@ -1,428 +1,714 @@
-#Fetching UI data#
+#Unit tests#
+Up until now we have been very much focused on setting up our build pipeline and writing a high level feature tests. And while I promised that it was time to write some code, we do have do a few more setup steps to carry out before we can get stuck in. To get confidence in our code we will be writing JavaScript modules using tests and we want those tests to run all the time (i.e. with each save). To that end we need to set up some more tasks to run those tests for us and add them to our build process.
 
-Our goal was to display local weather forecast and to that end we'll start with implementing the AJAX request to fetch the data from [forecast.io](https://developer.forecast.io/). Well not quite, instead we'll be sending a request to our server, which in turn will proxy the request to  [forecast.io](https://developer.forecast.io/). Why? For security reason, we do not want to include our API key for to [forecast.io](https://developer.forecast.io/) in our UI code, since anyone could retrieve it and use it. We don't want that, using an approach where we proxy the request through our server, we can make sure that no one gets access to the key, short of having access to the server. Their are other benefits that you couple explore later on such as just returning the data you want or performing transformations on the data itself.
+##Setting up our unit test runner using karma##
+I have chosen [Karma](https://www.npmjs.org/package/karma) as our Unit test runner, if you are new to [Karma](http://karma-runner.github.io/) I suggest you take a peak at some of the videos on the site. It comes with a variety of plugins and supports basically all of the popular unit test frameworks. As our testing framework we will use Jasmine.
 
-We'll start of as usualy by creating a branch:
+Before going to far, let's quickly create a few folders in the root of our project. You should already have a `node_modules/weatherly/src/js`, which is where we will store all of our JavaScript source code. We already have a task to concatenate/minify and move it to our app folder. Now we just need to create a `unit` folder for our unit tests. So the structure of our code and tests will look as follows:
 
-	git checkout -b ui-display-model-data 
+	-> tests
+		-> unit
+	-> node_modules
+		-> weatherly
+			->js
+		
+As with all tasks, let's create a new branch:
+
+	> git checkout -b test-runner
 	
-To help us organise our code, we'll use [Backbone.js](http://backbonejs.org/) and lucky for us there's an [NPM module](https://www.npmjs.com/package/backbone) as well.
+And then let's install the package and add it to our package.json file:
 
-	npm install backbone --save-dev
+	> npm install karma --save-dev
 	
-We could use [Bower](http://bower.io/) as well, however given that we use CommonJS and [Browserify](http://browserify.org/) this approach works well, and we can use [Backbone.js](http://backbonejs.org/) on the server side as well. However we won't be bundling the node module as part of our final bundle, instead we will leverage a CDN, however for testing purposes, we still need the framework.
+Ok time to create our Karma configuration file, typically you would type in the root of your project:
 
-We need to tell our test suite to include [Backbone.js](http://backbonejs.org/) as well, so edit the `karma.conf` file and look for the files block and once you have added: `'node_modules/backbone/backbone.js'` and `'node_modules/backbone/node_modules/underscore/underscore.js'`, it should look as follows:
+	> karma init karma.conf.js
 
-	// list of files / patterns to load in the browser
-    files: [
-    	'node_modules/backbone/node_modules/underscore/underscore.js',
-        'node_modules/backbone/backbone.js',
-        'node_modules/weatherly/js/**/*.js',
-        'tests/unit/**/*.js'
-   	],
+This would guide you through the process of setting up your test runner, here's how I answered the setup questions:
 
-##A story for our code##
+	Which testing framework do you want to use ?
+	Press tab to list possible options. Enter to move to the next question.
+	> jasmine
 
-Given the following story
+	Do you want to use Require.js ?
+	This will add Require.js plugin.
+	Press tab to list possible options. Enter to move to the next question.
+	> no
 
-	As a user 
-	I want to see the current weather conditions in my area
-	So that I can decide whether to take an umbrella or not
-	
+	Do you want to capture any browsers automatically ?
+	Press tab to list possible options. Enter empty string to move to the next question.
+	> PhantomJS
+	> 
 
-Our first task task will be to display the current weather conditions for our vicinity. The acceptance criteria for this story might well state the following:
+	What is the location of your source and test files ?
+	You can use glob patterns, eg. "js/*.js" or "test/**/*Spec.js".
+	Enter empty string to move to the next question.
+	> node_modules/weatherly/js/**/*.js,
+	> tests/unit/**/*.js
+	> 
 
-	Display the following:
-	* our location
- 	* the actual temperature
- 	* the apparent temperature
- 	* the current weather conditions
- 	* the weather conditions for the next hour
- 	* the weather conditions for the next 24 hours
- 	
- 	The temperature should be displayed in either Fahrenheit or Celsius depending on the location. The following coutries use Fahrenheit: the Bahamas, Belize, the Cayman Islands, Palau and the United States and its associated territories of American Samoa and the U.S. Virgin Islands (source http://en.wikipedia.org/wiki/Fahrenheit).
+	Should any of the files included by the previous patterns be excluded ?
+	You can use glob patterns, eg. "**/*.swp".
+	Enter empty string to move to the next question.
+	> 
 
+	Do you want Karma to watch all the files and run the tests on change ?
+	Press tab to list possible options.
+	> no
 
-##The Model##
-For our view we require a few things:
+	Config file generated at "/Users/writer/Projects/github/weatherly/karma.conf.js".
 
- * our location
- * the actual temperature
- * the apparent temperature
- * the current weather conditions
- * the weather conditions for the next hour
- * the weather conditions for the next 24 hours
- 
-So the model that backs our view should store that data, so let's review what the API returns. There's a lot of data in the JSON response from Forecast, but here's what we are interested in for the current weather conditions:
- 
- 	"currently":{"time":1419008168,"summary":"Clear","icon":"clear-night","nearestStormDistance":122,"nearestStormBearing":330,"precipIntensity":0,"precipProbability":0,"temperature":47.39,"apparentTemperature":41.78,"dewPoint":36.63,"humidity":0.66,"windSpeed":13.19,"windBearing":267,"visibility":9.32,"cloudCover":0.01,"pressure":1019.39,"ozone":295.69}
- 	
-There's also a `hourly` block that we'll use for the last 2 items. Our model will therefore have the following attributes:
+And here's the corresponding configuration that was generated:
 
-* location - _we'll need to derive that from either the timezone or another source_
-* temperature - currently:temperature
-* apparentTemperature - currently:temperature
-* currentWeatherConditions - currently:summary
-* weatherConditionsInHour - hourly:data[1]:summary
-* weatherConditionsInTwentyFourHours - hourly:data[23]:summary
-
-Setting these properties would not make for a very useful test as we would just be validating that BackBone is doing it's job, of more interest though is the fact that we need to display the temperatures in either Fahrenheit or Celsius based of our location. That makes for some more interesting tests. Having said that let's start by intialising our `TodaysWeather`class and making sure we have a temperatures set as our first test, before we move on to transforming the values into Celsius if appropriate.
-
-Given that we have nothing let's start with the simplest of tests though. At the terminal type:
-
-	grunt karma:dev
-
-This starts our test runner and runs the tests each time we save our code. Open up the `TodaysWeather-spec.js` test class we created in the Unit Test chapter and add the following code and save it:
+    // Karma configuration
+    // Generated on Sun Jul 20 2014 16:18:54 GMT+0100 (BST)
     
-    'use strict';
+    module.exports = function (config) {
+        config.set({
     
-    var TodaysWeather = require('weatherly/js/model/TodaysWeather');
+            // base path that will be used to resolve all patterns (eg. files, exclude)
+            basePath: '',
     
-    describe('Today \'s weather', function () {
     
-        beforeEach(function () {
-            this.location = 'Boston';
-            this.country = 'US';
-            this.temperature = 47.39;
-            this.apparentTemperature = 41.78;
+            // frameworks to use
+            // available frameworks: https://npmjs.org/browse/keyword/karma-adapter
+            frameworks: ['jasmine'],
+    
+    
+            // list of files / patterns to load in the browser
+            files: [
+                'node_modules/weatherly/js/**/*.js',
+                'tests/unit/**/*.js'
+            ],
+    
+    
+            // list of files to exclude
+            exclude: [
+            ],
+    
+    
+            // preprocess matching files before serving them to the browser
+            // available preprocessors: https://npmjs.org/browse/keyword/karma-preprocessor
+            preprocessors: {
+            },
+    
+    
+            // test results reporter to use
+            // possible values: 'dots', 'progress'
+            // available reporters: https://npmjs.org/browse/keyword/karma-reporter
+            reporters: ['progress'],
+    
+    
+            // web server port
+            port: 9876,
+    
+    
+            // enable / disable colors in the output (reporters and logs)
+            colors: true,
+    
+    
+            // level of logging
+            // possible values: config.LOG_DISABLE || config.LOG_ERROR || config.LOG_WARN || config.LOG_INFO || config.LOG_DEBUG
+            logLevel: config.LOG_INFO,
+    
+    
+            // enable / disable watching file and executing tests whenever any file changes
+            autoWatch: false,
+    
+    
+            // start these browsers
+            // available browser launchers: https://npmjs.org/browse/keyword/karma-launcher
+            browsers: ['PhantomJS'],
+    
+    
+            // Continuous Integration mode
+            // if true, Karma captures browsers, runs the tests and exits
+            singleRun: false
         });
-    
-        it('stores the values passed in', function () {
-            var todaysWeather = new TodaysWeather({ location: this.location,
-                country: this.country,
-                temperature: this.temperature,
-                apparentTemperature: this.apparentTemperature});
-    
-            expect(todaysWeather.get('location')).toBe(this.location);
-            expect(todaysWeather.get('temperature')).toBe(this.temperature);
-            expect(todaysWeather.get('apparentTemperature')).toBe(this.apparentTemperature);
-        });
-    });
+    };
 
-The console with test runner should show something like the following:    
- 
-	Running "karma:dev" (karma) task
-	INFO [karma]: Karma v0.12.17 server started at http://localhost:9876/
-	INFO [launcher]: Starting browser PhantomJS
-	INFO [PhantomJS 1.9.7 (Mac OS X)]: Connected on socket 3j7gCnFkGjjUdhbmJ_YS with id 10391093
-	PhantomJS 1.9.7 (Mac OS X) Today 's weather stores the values passed in FAILED
-        TypeError: 'undefined' is not an object (evaluating 'this.todaysWeather.location')
-            at /Users/gregstewart/Projects/github/weatherly/tests/unit/model/TodaysWeather-spec.js:8
-            at /Users/gregstewart/Projects/github/weatherly/node_modules/karma-jasmine/lib/adapter.js:166
-            at http://localhost:9876/karma.js:189
-            at http://localhost:9876/context.html:43
-	PhantomJS 1.9.7 (Mac OS X): Executed 1 of 1 (1 FAILED) ERROR (0.005 secs / 0.002 secs)
+Let's take it for a spin:
 
-	=============================== Coverage summary ===============================
-	Statements   : 83.33% ( 5/6 )
-	Branches     : 100% ( 2/2 )
-	Functions    : 50% ( 1/2 )
-	Lines        : 66.67% ( 2/3 )
-	================================================================================
-	
-Which tells us that this.todaysWeather.location is undefined, which makes sense since we haven't defined this.todaysWeather or this.todaysWeather.location. Let's rectify this:
+	> karma start
+	> INFO [karma]: Karma v0.12.17 server started at http://localhost:9876/
+	> INFO [launcher]: Starting browser PhantomJS
+	> WARN [watcher]: Pattern "/Users/writer/Projects/github/weatherly/tests/unit/**/*.js" does not match any file.
+	> INFO [PhantomJS 1.9.7 (Mac OS X)]: Connected on socket iqriF61DkEH0qp-sXlwR with id 10962078
+	> PhantomJS 1.9.7 (Mac OS X): Executed 0 of 0 ERROR (0.003 secs / 0 secs)
 
-    'use strict';
-    
-    var TodaysWeather = require('weatherly/js/model/TodaysWeather');
-    
-    describe('Today \'s weather', function () {
-    
-        beforeEach(function () {
-            this.location = 'Boston';
-            this.country = 'US';
-            this.temperature = 47.39;
-            this.apparentTemperature = 41.78;
-        });
-    
-        it('stores the values passed in', function () {
-            var todaysWeather = new TodaysWeather({ location: this.location,
-                country: this.country,
-                temperature: this.temperature,
-                apparentTemperature: this.apparentTemperature});
-    
-            expect(todaysWeather.get('location')).toBe(this.location);
-            expect(todaysWeather.get('temperature')).toBe(this.temperature);
-            expect(todaysWeather.get('apparentTemperature')).toBe(this.apparentTemperature);
-        });
-    });
-    
-That gets us a step closer but the test still fails because we haven't implemented anything:
+So we got an error, but that is because we have no tests. Let's wrap this into a grunt task:
 
-    var TodaysWeather = Backbone.Model.extend({
-    
-    });
-    
-    module.exports = TodaysWeather;
-    
-And that is all we need for now and the test should be green:
+	> npm install grunt-karma --save-dev
 
-	INFO [watcher]: Changed file "/Users/gregstewart/Projects/github/weatherly/tests/unit/model/TodaysWeather-spec.js".
-	PhantomJS 1.9.7 (Mac OS X): Executed 1 of 1 SUCCESS (0.008 secs / 0.004 secs)
+Create a `build\test.js file`:
 
-	=============================== Coverage summary ===============================
-	Statements   : 100% ( 5/5 )
-	Branches     : 100% ( 2/2 )
-	Functions    : 100% ( 1/1 )
-	Lines        : 100% ( 2/2 )
-	================================================================================
-	
-With that out of the way we can tackle converting our temperatures from Fahrenheit to Celcius if the location matches one of these countries: the Bahamas (BS), Belize (BZ), the Cayman Islands (KY), Palau (PW) and the United States (US) and its associated territories of American Samoa (AS) and the U.S. Virgin Islands (VI). The formula looks like this: `([°F] − 32) × 5⁄9`. Let's add some tests for that:
-
-    'use strict';
-    
-    var TodaysWeather = require('weatherly/js/model/TodaysWeather');
-    
-    describe('Today \'s weather', function () {
-    
-        beforeEach(function () {
-            this.location = 'Boston';
-            this.country = 'US';
-            this.temperature = 47.39;
-            this.apparentTemperature = 41.78;
-        });
-    
-        it('stores the values passed in', function () {
-            var todaysWeather = new TodaysWeather({ location: this.location,
-                country: this.country,
-                temperature: this.temperature,
-                apparentTemperature: this.apparentTemperature});
-    
-            expect(todaysWeather.get('location')).toBe(this.location);
-            expect(todaysWeather.get('temperature')).toBe(this.temperature);
-            expect(todaysWeather.get('apparentTemperature')).toBe(this.apparentTemperature);
-        });
-    
-        describe('Temperature conversion', function () {
-            describe('given we are in the "UK"', function () {
-                it('converts to Celsius', function () {
-                    var expectedTemperature = (this.temperature - 32) * (5/9),
-                        expectedApparentTemperature = (this.apparentTemperature - 32) * (5/9),
-                        todaysWeather = new TodaysWeather({ location: 'London',
-                        country: 'UK',
-                        temperature: this.temperature,
-                        apparentTemperature: this.apparentTemperature});
-
-                    expect(todaysWeather.get('temperature')).toBe(expectedTemperature);
-                    expect(todaysWeather.get('apparentTemperature')).toBe(expectedApparentTemperature);
-                });
-            });
-
-            describe('given we are in a country that uses Fahrenheit', function () {
-                it('does not convert to Celsius when we are in Nassau', function () {
-                    var todaysWeather = new TodaysWeather({ location: 'Nassau',
-                            country: 'BS',
-                            temperature: this.temperature,
-                            apparentTemperature: this.apparentTemperature});
-
-                    expect(todaysWeather.get('temperature')).toBe(this.temperature);
-                    expect(todaysWeather.get('apparentTemperature')).toBe(this.apparentTemperature);
-                });
-
-                it('does not convert to Celsius when we are in Boston', function () {
-                    var todaysWeather = new TodaysWeather({ location: this.location,
-                            country: this.country,
-                            temperature: this.temperature,
-                            apparentTemperature: this.apparentTemperature});
-
-                    expect(todaysWeather.get('temperature')).toBe(this.temperature);
-                    expect(todaysWeather.get('apparentTemperature')).toBe(this.apparentTemperature);
-                });
-
-                it('does not convert to Celsius when we are in Charlotte Amalie', function () {
-                    var todaysWeather = new TodaysWeather({ location: 'Charlotte Amalie',
-                            country: 'VI',
-                            temperature: this.temperature,
-                            apparentTemperature: this.apparentTemperature});
-
-                    expect(todaysWeather.get('temperature')).toBe(this.temperature);
-                    expect(todaysWeather.get('apparentTemperature')).toBe(this.apparentTemperature);
-                });
-
-                it('does not convert to Celsius when we are in Pago Pago', function () {
-                    var todaysWeather = new TodaysWeather({ location: 'Pago Pago',
-                            country: 'AS',
-                            temperature: this.temperature,
-                            apparentTemperature: this.apparentTemperature});
-
-                    expect(todaysWeather.get('temperature')).toBe(this.temperature);
-                    expect(todaysWeather.get('apparentTemperature')).toBe(this.apparentTemperature);
-                });
-
-                it('does not convert to Celsius when we are in Ngerulmud', function () {
-                    var todaysWeather = new TodaysWeather({ location: 'Ngerulmud',
-                            country: 'PW',
-                            temperature: this.temperature,
-                            apparentTemperature: this.apparentTemperature});
-
-                    expect(todaysWeather.get('temperature')).toBe(this.temperature);
-                    expect(todaysWeather.get('apparentTemperature')).toBe(this.apparentTemperature);
-                });
-
-                it('does not convert to Celsius when we are in George Town', function () {
-                    var todaysWeather = new TodaysWeather({ location: 'George Town',
-                            country: 'KY',
-                            temperature: this.temperature,
-                            apparentTemperature: this.apparentTemperature});
-
-                    expect(todaysWeather.get('temperature')).toBe(this.temperature);
-                    expect(todaysWeather.get('apparentTemperature')).toBe(this.apparentTemperature);
-                });
-
-                it('does not convert to Celsius when we are in Belmopan', function () {
-                    var todaysWeather = new TodaysWeather({ location: 'Belmopan',
-                            country: 'BZ',
-                            temperature: this.temperature,
-                            apparentTemperature: this.apparentTemperature});
-
-                    expect(todaysWeather.get('temperature')).toBe(this.temperature);
-                    expect(todaysWeather.get('apparentTemperature')).toBe(this.apparentTemperature);
-                });
-            });
-        });
-    });
+    (function (module) {
+        'use strict';
+        var config = {
+            karma: {
+            	unit: {
+	            	configFile: 'karma.conf.js'
+            	}
+        	}
+        };
         
-In order to make this test pass we need to implement a converter function and it will be called when the values for `temperature` and `apparentTemperature` are initially set. Here's the code that implements our converter and is called on initial set.
-
-    var TodaysWeather = Backbone.Model.extend({
-        initialize: function () {
-            this.attributes.temperature = this.convertTemperature(this.get('country'), this.get('temperature'));
-            this.attributes.apparentTemperature = this.convertTemperature(this.get('country'), this.get('apparentTemperature'));
-        },
-        convertTemperature: function (country, temperature) {
-            var countriesToIgnore = ['BS', 'BZ', 'KY', 'PW', 'US', 'AS', 'VI'];
-    
-            if(countriesToIgnore.indexOf(country) === -1) {
-                return (temperature - 32) * (5/9);
-            }
-    
-            return temperature;
+        module.exports = function (grunt) {
+            grunt.loadNpmTasks('grunt-karma');
+            
+            grunt.config('karma', config);
         }
-    });
-    
-    module.exports = TodaysWeather;
-    
-And with that all of the tests pass once again:
+    })(module);
 
-	INFO [watcher]: Changed file "/Users/gregstewart/Projects/github/weatherly/node_modules/weatherly/js/model/TodaysWeather.js".
-	PhantomJS 1.9.7 (Mac OS X): Executed 9 of 9 SUCCESS (0.009 secs / 0.006 secs)
-
-	=============================== Coverage summary ===============================
-	Statements   : 100% ( 11/11 )
-	Branches     : 100% ( 4/4 )
-	Functions    : 100% ( 3/3 )
-	Lines        : 100% ( 8/8 )
-	================================================================================
+Let's try this out our new grunt task:
+    
+	> grunt karma:unit
 	
-This conversion should also take place if either value changes:
+	> Running "karma:unit" (karma) task
+	> INFO [karma]: Karma v0.12.17 server started at http://localhost:9876/
+	> INFO [launcher]: Starting browser PhantomJS
+	> WARN [watcher]: Pattern "/Users/gregstewart/Projects/github/weatherly/src/js/**/*.js" does not match any file.
+	> WARN [watcher]: Pattern "/Users/gregstewart/Projects/github/weatherly/tests/unit/**/*.js" does not match any file.
+	> INFO [PhantomJS 1.9.7 (Mac OS X)]: Connected on socket QO4qLCSO-4DZVO7eaRky with id 9893379
+	> PhantomJS 1.9.7 (Mac OS X): Executed 0 of 0 ERROR (0.003 secs / 0 secs)
+	> Warning: Task "karma:unit" failed. Use --force to continue.
 
-	        ...
-			
-			describe('Temperature changes afterwards', function () {
+	> Aborted due to warnings.
 
-                it('converts the temperature value if we are in the "UK"', function () {
-                    var expected = (this.temperature - 32) * (5/9),
-                        changeExpected = (99 - 32) * (5/9),
-                        todaysWeather = new TodaysWeather({ location: 'London',
-                            country: 'UK',
-                            temperature: this.temperature,
-                            apparentTemperature: this.apparentTemperature});
+Similar output, with the difference that our process terminated this time because of the warnings about no files macthing our pattern. We'll fix this issue by writing our very first unit test!
 
-                    expect(todaysWeather.get('temperature')).toBe(expected);
+##Writing and running our first unit test 
+In the [previous chapter](link here) we created a source folder and added a sample module, to confirm our build process for our JavaScript assets worked. Let's go ahead and create one test file, as well as some of the folder structure for our project: 
 
-                    todaysWeather.set('temperature', 99);
-                    expect(todaysWeather.get('temperature')).toBe(changeExpected);
-                });
+	> mkdir tests/unit/
+	> mkdir tests/unit/model/
+	> touch tests/unit/model/TodaysWeather-spec.js
 
-                it('converts the apparentTemperature value if we are in the "UK"', function () {
-                    var expected = (this.apparentTemperature - 32) * (5/9),
-                        changeExpected = (80 - 32) * (5/9),
-                        todaysWeather = new TodaysWeather({ location: 'London',
-                            country: 'UK',
-                            temperature: this.temperature,
-                            apparentTemperature: this.apparentTemperature});
+What we want to do know is validate our Karma configuration before we starting our real tests, so let's add a sample test to our `TodaysWeather-spec.js`:
 
-                    expect(todaysWeather.get('apparentTemperature')).toBe(expected);
+	'use strict';
+	/* exported TodaysWeather */
+	var TodaysWeather = require('weatherly/js/model/TodaysWeather');
 
-                    todaysWeather.set('apparentTemperature', 80);
-                    expect(todaysWeather.get('apparentTemperature')).toBe(changeExpected);
-                });
+	describe('Today \'s weather', function () {
+    	it('should return 2', function () {
+       		expect(1+1).toBe(2);
+	    });
+	});
 
-                it('does not convert the temperature value if we are in the US', function () {
-                    var todaysWeather = new TodaysWeather({ location: 'Boston',
-                            country: 'US',
-                            temperature: this.temperature,
-                            apparentTemperature: this.apparentTemperature});
+We could try and run our Karma task again, but this would only result in an error, because we are using the [CommonJS](http://wiki.commonjs.org/wiki/CommonJS) module approach and we would see an error stating that `module` is not defined, because our module under tests uses:
 
-                    expect(todaysWeather.get('temperature')).toBe(this.temperature);
+	module.exports = TodaysWeather;
 
-                    todaysWeather.set('temperature', 80);
-                    expect(todaysWeather.get('temperature')).toBe(80);
-                });
-         	});
- 
- Let's get these tests passing as well:
- 
-     var TodaysWeather = Backbone.Model.extend({
-        initialize: function () {
-            this.attributes.temperature = this.convertTemperature(this.get('country'), this.get('temperature'));
-            this.attributes.apparentTemperature = this.convertTemperature(this.get('country'), this.get('apparentTemperature'));
+We need to somehow tell our test runner that we use the CommonJS module type and resolve `module` and `require`. Once again we will resort to a npm module: `karma-commonjs`:
 
-            this.on('change:temperature', this.temperatureChanged, this);
-            this.on('change:apparentTemperature', this.apparentTemperatureChanged, this);
-        },
-        temperatureChanged: function () {
-            this.attributes.temperature = this.convertTemperature(this.get('country'), this.get('temperature'));
-        },
-        apparentTemperatureChanged: function () {
-            this.attributes.apparentTemperature = this.convertTemperature(this.get('country'), this.get('apparentTemperature'));
-        },
-        convertTemperature: function (country, temperature) {
-            var countriesToIgnore = ['BS', 'BZ', 'KY', 'PW', 'US', 'AS', 'VI'];
+	> npm install karma-commonjs --save-dev
 
-            if(countriesToIgnore.indexOf(country) === -1) {
-                return (temperature - 32) * (5/9);
-            }
+Next we need to update our `karma.conf.js` file:
+	
+	// Karma configuration
+    // Generated on Sun Jul 20 2014 16:18:54 GMT+0100 (BST)
 
-            return temperature;
-        }
-    });
+    module.exports = function (config) {
+        config.set({
 
-    module.exports = TodaysWeather;
+            // base path that will be used to resolve all patterns (eg. files, exclude)
+            basePath: '',
+
+
+            // frameworks to use
+            // available frameworks: https://npmjs.org/browse/keyword/karma-adapter
+            frameworks: ['jasmine', 'commonjs'],
+
+
+            // list of files / patterns to load in the browser
+            files: [
+                'node_modules/weatherly/js/**/*.js',
+                'tests/unit/**/*.js'
+            ],
+
+
+            // list of files to exclude
+            exclude: [
+            ],
+
+
+            // preprocess matching files before serving them to the browser
+            // available preprocessors: https://npmjs.org/browse/keyword/karma-preprocessor
+            preprocessors: {
+                'node_modules/weatherly/js/**/*.js': ['commonjs'],
+                'tests/unit/**/*.js': ['commonjs']
+            },
+
+
+            // test results reporter to use
+            // possible values: 'dots', 'progress'
+            // available reporters: https://npmjs.org/browse/keyword/karma-reporter
+            reporters: ['progress'],
+
+
+            // web server port
+            port: 9876,
+
+
+            // enable / disable colors in the output (reporters and logs)
+            colors: true,
+
+
+            // level of logging
+            // possible values: config.LOG_DISABLE || config.LOG_ERROR || config.LOG_WARN || config.LOG_INFO || config.LOG_DEBUG
+            logLevel: config.LOG_INFO,
+
+
+            // enable / disable watching file and executing tests whenever any file changes
+            autoWatch: false,
+
+
+            // start these browsers
+            // available browser launchers: https://npmjs.org/browse/keyword/karma-launcher
+            browsers: ['PhantomJS'],
+
+
+            // Continuous Integration mode
+            // if true, Karma captures browsers, runs the tests and exits
+            singleRun: true
+        });
+    };
+
+We added `commonjs` to the frameworks block and then configured the `preprocessor` block to process our source and test files using our chosen module type. Let's try this again:
+
+	> grunt karma:unit
+	> Running "karma:unit" (karma) task
+	> INFO [karma]: Karma v0.12.17 server started at http://localhost:9876/
+	> INFO [launcher]: Starting browser PhantomJS
+	> INFO [PhantomJS 1.9.7 (Mac OS X)]: Connected on socket 3i335x4S_5GG88E7TsOM with id 58512369
+	> PhantomJS 1.9.7 (Mac OS X): Executed 1 of 1 SUCCESS (0.005 secs / 0.002 secs)
+	
+	> Done, without errors.
+
+Perfect!
+
+## Running our tests as part of the build
+Now that we have our test runner set up' let's add it to our build process. This is going to require us to register a new task as we will need to do a few things:
+
+* build our assets
+* run our unit tests
+* run our end to end tests
+
+Let's go ahead and create a task called `test` in our `Gruntfile` and configure it to execute these tasks:
+
+    module.exports = function (grunt) {
+		'use strict';
+        
+        grunt.registerTask('generate', ['less:production', 'copy:fonts', 'browserify:code']);
+        grunt.registerTask('build', ['bower:install', 'generate']);
+        
+        grunt.registerTask('e2e', [
+            'selenium_start',
+            'express:test',
+            'cucumberjs',
+            'selenium_stop',
+            'express:test:stop'
+        ]);
     
-#### Red, Green, Refactor ####
-There are few improvements we can make to this code, now that all of our tests are passing and our coverage looks solid, it's time for the refactor phase:
-
-	var TodaysWeather = Backbone.Model.extend({
-        initialize: function () {
-            this.attributes.temperature = this.convertTemperature(this.get('country'), this.get('temperature'));
-            this.attributes.apparentTemperature = this.convertTemperature(this.get('country'), this.get('apparentTemperature'));
-
-            this.on('change:temperature', this.temperatureChanged, this);
-            this.on('change:apparentTemperature', this.apparentTemperatureChanged, this);
-        },
-        temperatureChanged: function () {
-            this.attributes.temperature = this.convertTemperature(this.get('country'), this.get('temperature'));
-        },
-        apparentTemperatureChanged: function () {
-            this.attributes.apparentTemperature = this.convertTemperature(this.get('country'), this.get('apparentTemperature'));
-        },
-        convertTemperature: function (country, temperature) {
-            if(this.isCelsiusCountry(country)) {
-                return this.convertToCelsius(temperature);
-            }
-
-            return temperature;
-        },
-        isCelsiusCountry: function (country) {
-            return ['BS', 'BZ', 'KY', 'PW', 'US', 'AS', 'VI'].indexOf(country) === -1;
-        },
-        convertToCelsius: function (temperature) {
-            return (temperature - 32) * (5/9);
-        }
-    });
-
-    module.exports = TodaysWeather;
+        grunt.registerTask('test', ['build', 'karma:unit', 'e2e']);
     
-A final scenario that springs to mind is what happens if the location changes? What if travelled from the US to the UK? We should deal with this as well
+        grunt.registerTask('heroku:production', 'build');
+    };
+    
+And let's make sure everything runs as intended:
+
+	> grunt test
+	> Running "less:production" (less) task
+	> File app/css/main.css created: 131.45 kB → 108.43 kB
+
+	> Running "copy:fonts" (copy) task
+	> Copied 4 files
+
+	> Running "browserify:dist" (browserify) task
+
+	> Running "karma:unit" (karma) task
+	> INFO [karma]: Karma v0.12.17 server started at http://localhost:9876/
+	> INFO [launcher]: Starting browser PhantomJS
+	> INFO [PhantomJS 1.9.7 (Mac OS X)]: Connected on socket 1kikUD-UC4_Gd6Qh9T49 with id 53180162
+	> PhantomJS 1.9.7 (Mac OS X): Executed 1 of 1 SUCCESS (0.002 secs / 0.002 secs)
+
+	> Running "selenium_start" task
+	> seleniumrc webdriver ready on 127.0.0.1:4444
+
+	> Running "express:test" (express) task
+	> Starting background Express server
+	> Listening on port 3000
+
+	> Running "cucumberjs:src" (cucumberjs) task
+	> ...
+
+	> 1 scenario (1 passed)
+	> 3 steps (3 passed)
+
+	> Running "selenium_stop" task
+
+	> Running "express:test:stop" (express) task
+	> Stopping Express server
+
+	> Done, without errors.
+
+If you recall we configured our build to execute `grunt e2e`, we need to update this now to execute `grunt test`. Log into to your Codeship dashboard and edit the test configuration:
+
+![Codeship dashboard with updating test configuration](images/Screenshot 2014-09-07 12.59.58.png)
+
+Ready to give this is a spin? 
+
+ 	> git status
+ 	> git add .
+ 	> git commit -m "Karma test configuration added and new build test task created"
+ 	> git checkout master
+ 	> git merge test-runner
+ 	> git push
+ 
+If we keep an eye on our dashboard we should see a build kicked-off and `test` task being executed:
+
+![Codeship dashboard with updating test configuration](images/Screenshot 2014-09-07 13.08.51.png)
+ 
+
+## Continuously running our tests
+So far so good. While it's it's nice to have our tests execute manually, let's automate this. Could it be as simple as setting the `karma.conf.js` setting `singleRun` to `false` and `autoWatch` to `true`, well kind of. When running things on our build server we still want the single run to be true, however for local development purposes it should always run. So let's tackle this:
+
+	> git checkout -b run-tests-continuously
+
+Let'start by modifying our `karma.conf.js` file to run tests continuously:
+
+	// Karma configuration
+    // Generated on Sun Jul 20 2014 16:18:54 GMT+0100 (BST)
+
+    module.exports = function (config) {
+        config.set({
+
+            // base path that will be used to resolve all patterns (eg. files, exclude)
+            basePath: '',
+
+
+            // frameworks to use
+            // available frameworks: https://npmjs.org/browse/keyword/karma-adapter
+            frameworks: ['jasmine', 'commonjs'],
+
+
+            // list of files / patterns to load in the browser
+            files: [
+                'node_modules/weatherly/js/**/*.js',
+                'tests/unit/**/*.js'
+            ],
+
+
+            // list of files to exclude
+            exclude: [
+            ],
+
+
+            // preprocess matching files before serving them to the browser
+            // available preprocessors: https://npmjs.org/browse/keyword/karma-preprocessor
+            preprocessors: {
+                'node_modules/weatherly/js/**/*.js': ['commonjs'],
+                'tests/unit/**/*.js': ['commonjs']
+            },
+
+
+            // test results reporter to use
+            // possible values: 'dots', 'progress'
+            // available reporters: https://npmjs.org/browse/keyword/karma-reporter
+            reporters: ['progress'],
+
+
+            // web server port
+            port: 9876,
+
+
+            // enable / disable colors in the output (reporters and logs)
+            colors: true,
+
+
+            // level of logging
+            // possible values: config.LOG_DISABLE || config.LOG_ERROR || config.LOG_WARN || config.LOG_INFO || config.LOG_DEBUG
+            logLevel: config.LOG_INFO,
+
+
+            // enable / disable watching file and executing tests whenever any file changes
+            autoWatch: true,
+
+
+            // start these browsers
+            // available browser launchers: https://npmjs.org/browse/keyword/karma-launcher
+            browsers: ['PhantomJS'],
+
+
+            // Continuous Integration mode
+            // if true, Karma captures browsers, runs the tests and exits
+            singleRun: false
+        });
+    };
+
+Try this out by running `grunt karma:unit` and after the first run has completed making a change to our source `TodaysWeather` file:
+
+	> grunt karma:unit
+	> Running "karma:unit" (karma) task
+	> INFO [karma]: Karma v0.12.17 server started at http://localhost:9876/
+	> INFO [launcher]: Starting browser PhantomJS
+	> INFO [PhantomJS 1.9.7 (Mac OS X)]: Connected on socket 9k2m2-j9Ets37p7sWD2Y with id 21051890
+	> PhantomJS 1.9.7 (Mac OS X): Executed 1 of 1 SUCCESS (0.007 secs / 0.003 secs)
+	> INFO [watcher]: Changed file "/Users/gregstewart/Projects/github/weatherly/node_modules/weatherly/js/model/TodaysWeather.js".
+	> PhantomJS 1.9.7 (Mac OS X): Executed 1 of 1 SUCCESS (0.005 secs / 0.002 secs)
+
+Exactly what we wanted. Let's now tackle our build versus development problem. We will just create a seperate build task in our `test.js` file that uses the same configuration file but overrides the properties we need for our build environment:
+
+    (function (module) {
+        'use strict';
+        var config = {
+            dev: {
+                configFile: 'karma.conf.js'
+            },
+            ci: {
+                configFile: 'karma.conf.js',
+                singleRun: true,
+                autoWatch: false
+            }
+        };
+    
+        module.exports = function (grunt) {
+            grunt.loadNpmTasks('grunt-karma');
+    
+            grunt.config('karma', config);
+        }
+    })(module);
+
+    
+I took the chance to rename the `karma:unit` task to `karma:dev` and create a `karma:ci` task. The next thing was update the `test` task in our `Gruntfile.js` to also execute `karma:ci` instead of `karma:unit`. 
+
+    module.exports = function (grunt) {
+        'use strict';
+    
+        grunt.loadTasks('build');
+    
+        grunt.registerTask('generate', ['less:production', 'copy:fonts', 'browserify:code']);
+        grunt.registerTask('build', ['bower:install', 'generate']);
+    
+        grunt.registerTask('e2e', [
+            'selenium_start',
+            'express:test',
+            'cucumberjs',
+            'selenium_stop',
+            'express:test:stop'
+        ]);
+    
+        grunt.registerTask('test', ['build', 'karma:ci', 'e2e']);
+        grunt.registerTask('heroku:production', 'build');
+    };
+
+Let's test all those changes:
+
+	> grunt test       
+	> Running "bower:install" (bower) task
+	> >> Installed bower packages
+	> >> Copied packages to /Users/gregstewart/Projects/github/weatherly/bower_components
+	
+	> Running "less:production" (less) task
+	> File app/css/main.css created: 131.45 kB → 108.43 kB
+	
+	> Running "copy:fonts" (copy) task
+	> Copied 4 files
+	
+	> Running "browserify:code" (browserify) task
+	
+	> Running "karma:ci" (karma) task
+	> INFO [karma]: Karma v0.12.17 server started at http://localhost:9876/
+	> INFO [launcher]: Starting browser PhantomJS
+	> INFO [PhantomJS 1.9.7 (Mac OS X)]: Connected on socket 67MYRP0HFPzhHE9wY3vt with id 58848767
+	> PhantomJS 1.9.7 (Mac OS X): Executed 1 of 1 SUCCESS (0.002 secs / 0.002 secs)
+	
+	> Running "selenium_start" task
+	> seleniumrc webdriver ready on 127.0.0.1:4444
+	
+	> Running "express:test" (express) task
+	> Starting background Express server
+	> Listening on port 3000
+	
+	> Running "cucumberjs:src" (cucumberjs) task
+	> ...
+	
+	> 1 scenario (1 passed)
+	> 3 steps (3 passed)
+	
+	> Running "selenium_stop" task
+	
+	> Running "express:test:stop" (express) task
+	> Stopping Express server
+	
+	> Done, without errors.
+
+Time to commit our changes back to master and push to origin and see the whole thing go through our build pipeline:
+
+	> git add .
+	> git commit -m "Run tests continuously in dev and single run on CI"
+	> git checkout master
+	> git merge run-tests-continuously
+	> git push
+	
+Now check your CI server and you should see the following if it all went to plan:
+
+![Codeship dashboard with updated ci test configuration](images/Screenshot 2014-09-11 21.40.18.png)
+	
+## Adding code coverage
+A little bonus while we are setting up test infrastructure, code coverage. Now code coverage is one of these topics that sparks almost fanatical discussions, however I find a useful tool to make sure I have covered all of the important parts of my code. Lucky for us, it's easy to add support to Karma all we need is a plugin:
+
+	> git checkout -b code-coverage
+	> npm install karma-coverage --save-dev
+	
+And modify our `karma.conf.js` file: 
+
+    // Karma configuration
+    // Generated on Sun Jul 20 2014 16:18:54 GMT+0100 (BST)
+    
+    module.exports = function (config) {
+        config.set({
+    
+            // base path that will be used to resolve all patterns (eg. files, exclude)
+            basePath: '',
+    
+    
+            // frameworks to use
+            // available frameworks: https://npmjs.org/browse/keyword/karma-adapter
+            frameworks: ['jasmine', 'commonjs'],
+    
+    
+            // list of files / patterns to load in the browser
+            files: [
+                'node_modules/weatherly/js/**/*.js',
+                'tests/unit/**/*.js'
+            ],
+    
+    
+            // list of files to exclude
+            exclude: [
+            ],
+    
+    
+            // preprocess matching files before serving them to the browser
+            // available preprocessors: https://npmjs.org/browse/keyword/karma-preprocessor
+            preprocessors: {
+                'node_modules/weatherly/js/**/*.js': ['commonjs', 'coverage'],
+                'tests/unit/**/*.js': ['commonjs'],
+            },
+    
+    
+            // test results reporter to use
+            // possible values: 'dots', 'progress'
+            // available reporters: https://npmjs.org/browse/keyword/karma-reporter
+            reporters: ['progress', 'coverage'],
+    
+            coverageReporter: {
+                reporters: [
+                    { type: 'html'},
+                    { type: 'text-summary' }
+                ],
+                dir: 'reports/coverage'
+            },
+    
+            // web server port
+            port: 9876,
+    
+    
+            // enable / disable colors in the output (reporters and logs)
+            colors: true,
+    
+    
+            // level of logging
+            // possible values: config.LOG_DISABLE || config.LOG_ERROR || config.LOG_WARN || config.LOG_INFO || config.LOG_DEBUG
+            logLevel: config.LOG_INFO,
+    
+    
+            // enable / disable watching file and executing tests whenever any file changes
+            autoWatch: true,
+    
+    
+            // start these browsers
+            // available browser launchers: https://npmjs.org/browse/keyword/karma-launcher
+            browsers: ['PhantomJS'],
+    
+    
+            // Continuous Integration mode
+            // if true, Karma captures browsers, runs the tests and exits
+            singleRun: false
+        });
+    };
+
+Running our `grunt karma:dev` task yields the following output:
+
+	> Running "karma:dev" (karma) task
+	> INFO [karma]: Karma v0.12.17 server started at http://localhost:9876/
+	> INFO [launcher]: Starting browser PhantomJS
+	> INFO [PhantomJS 1.9.7 (Mac OS X)]: Connected on socket OVbmSp9OmFMK23l5jA2J with id 80988698
+	> PhantomJS 1.9.7 (Mac OS X): Executed 1 of 1 SUCCESS (0.005 secs / 0.002 secs)
+	
+	> =============================== Coverage summary ===============================
+	> Statements   : 83.33% ( 5/6 )
+	> Branches     : 100% ( 2/2 )
+	> Functions    : 50% ( 1/2 )
+	> Lines        : 66.67% ( 2/3 )
+	> ================================================================================
+	> ^C
+	> Done, without errors.
+  
+There's more information in the shape of an HTML report to be found under `reports/coverage/`. Here's a what that looks like
+
+![Istanbule code coverage report](images/Screenshot 2014-09-11 22.14.57.png)
+ 
+One final thing before we close off this section. You may not want to run your coverage report as part the CI process. If you do then ignore this part. By editing our `test.js` and for our `karma:ci` task overriding the reporter step with `reporters: ['progress']` we can skip this step for our build.
+
+    (function (module) {
+        'use strict';
+        var config = {
+            dev: {
+                configFile: 'karma.conf.js'
+            },
+            ci: {
+                configFile: 'karma.conf.js',
+                singleRun: true,
+                autoWatch: false,
+                reporters: ['progress']
+            }
+        };
+
+        module.exports = function (grunt) {
+            grunt.loadNpmTasks('grunt-karma');
+
+            grunt.config('karma', config);
+        }
+    })(module);
+      
+We also do not want to commit our reports to our repos, so another `.gitignore` tweak is needed:
+
+	.idea
+	bower_components
+	reports
+    phantomjsdriver.log
+	app/css
+	app/fonts
+	app/js
+	node_modules/*
+	!node_modules/weatherly
+	
+Time to commit and merge our changes:
+	
+	> git add .	
+	> git commit -m "added coverage to dev process"
+	> git checkout master
+	> git merge code-coverage 
+	> git push
+	
+## Recap
+We covered quite a bit of ground here:
+
+* we set up Karma
+* wrote a very basic unit test to validate the test runner was working
+* configured the tests for local continuous testing and single run during the build
+* added code coverage to our tooling
+
+With that onwards to development guided by tests!
