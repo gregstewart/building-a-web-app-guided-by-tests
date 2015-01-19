@@ -146,5 +146,3 @@ In this last section we:
 * created a Heroku app
 * configured our CI environment to deploy to that instance
 * modified our web server to handle dynamic port allocation
-
-And now it's time to write some code!
