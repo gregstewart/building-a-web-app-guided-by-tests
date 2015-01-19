@@ -414,13 +414,13 @@ There are few improvements we can make to this code, now that all of our tests a
             this.attributes.apparentTemperature = this.convertTemperature(this.get('country'), this.get('apparentTemperature'));
         },
         convertTemperature: function (country, temperature) {
-            if(this.isCelsiusCountry(country)) {
+            if(this.shouldConvertToCelsius(country)) {
                 return this.convertToCelsius(temperature);
             }
 
             return temperature;
         },
-        isCelsiusCountry: function (country) {
+        shouldConvertToCelsius: function (country) {
             return ['BS', 'BZ', 'KY', 'PW', 'US', 'AS', 'VI'].indexOf(country) === -1;
         },
         convertToCelsius: function (temperature) {
@@ -430,7 +430,205 @@ There are few improvements we can make to this code, now that all of our tests a
 
     module.exports = TodaysWeather;
     
-A final scenario that springs to mind is what happens if the location changes? What if travelled from the US to the UK? We should deal with this as well
+I was able to extract two methods, one for figuring out whether the country we are in wants the temperature in Celsius or Fahrenheit (`shouldConvertToCelsius`) and another to do the actual conversion from Fahrenheit to Celsius (`convertToCelsius`). The upshot of this step is that  the `convertTemperature` is easier to read and simpler to understand.
+    
+###Where another requirement emerges
+Just as you think you are done, your product owner points out the following scenario: "What happens if the location changes? What if travelled from the US to the UK? Shouldn't the temperature be updated as well?" We should deal with this and here are the tests to cover this:
+	
+	...
+		describe('Location changes', function () {
+            it('should convert if we were in a Fahrenheit country but are now in the "UK"', function () {
+                var expected = (this.temperature - 32) * (5/9),
+                    todaysWeather = new TodaysWeather({ location: 'Boston',
+                    country: 'US',
+                    temperature: this.temperature,
+                    apparentTemperature: this.apparentTemperature});
+
+                expect(todaysWeather.get('temperature')).toBe(this.temperature);
+
+                todaysWeather.set('location', 'UK');
+                expect(todaysWeather.get('temperature')).toBe(expected);
+            });
+
+            it('should convert if we were in a Celsius country but are now in the "US"', function () {
+                var originalTemperature = this.temperature,
+                    expected = (this.temperature - 32) * (5/9),
+                    todaysWeather = new TodaysWeather({ location: 'London',
+                        country: 'UK',
+                        temperature: this.temperature,
+                        apparentTemperature: this.apparentTemperature});
+
+                expect(todaysWeather.get('temperature')).toBe(expected);
+
+                todaysWeather.set('location', 'US');
+                expect(todaysWeather.get('temperature')).toBe(originalTemperature);
+            });
+        });
+
+
+The code to make these tests pass:
+
+    'use strict';
+    
+    var TodaysWeather = Backbone.Model.extend({
+        initialize: function () {
+            this.attributes.temperature = this.convertTemperature(this.get('country'), this.get('temperature'));
+            this.attributes.apparentTemperature = this.convertTemperature(this.get('country'), this.get('apparentTemperature'));
+    
+            this.on('change:temperature', this.temperatureChanged, this);
+            this.on('change:apparentTemperature', this.apparentTemperatureChanged, this);
+            this.on('change:country', this.countryHasChanged, this);
+        },
+        temperatureChanged: function () {
+            this.attributes.temperature = this.convertTemperature(this.get('country'), this.get('temperature'));
+        },
+        apparentTemperatureChanged: function () {
+            this.attributes.apparentTemperature = this.convertTemperature(this.get('country'), this.get('apparentTemperature'));
+        },
+        countryHasChanged: function () {
+            if (this._previousAttributes.country !== this.get('country')) {
+                if(this.shouldConvertToCelsius(this.get('country'))) {
+                    this.attributes.temperature = this.convertToCelsius(this.get('temperature'));
+                    this.attributes.apparentTemperature = this.convertToCelsius(this.get('apparentTemperature'));
+                } else {
+                    this.attributes.temperature = this.convertToFahrenheit(this.get('temperature'));
+                    this.attributes.apparentTemperature = this.convertToFahrenheit(this.get('apparentTemperature'));
+                }
+            }
+        },
+        convertTemperature: function (country, temperature) {
+            if(this.shouldConvertToCelsius(country)) {
+                return this.convertToCelsius(temperature);
+            }
+    
+            return temperature;
+        },
+        shouldConvertToCelsius: function (country) {
+            return ['BS', 'BZ', 'KY', 'PW', 'US', 'AS', 'VI'].indexOf(country) === -1;
+        },
+        convertToCelsius: function (temperature) {
+            return (temperature - 32) * (5/9);
+        },
+        convertToFahrenheit: function (temperature) {
+            return (temperature * (9/5)) + 32;
+        }
+    });
+    
+    module.exports = TodaysWeather;
+    
+At this stage we can once again do some more refactoring. The functions for converting temperatures have nothing to with Today's Weather object, so let's extract these into it's own module `TemperatureConverter.js`:
+
+    'use strict';
+    
+    var TemperatureConverter = function () {
+        return {
+            toCelsius: function (temperature) {
+                return (temperature - 32) * (5/9);
+            },
+            toFahrenheit: function (temperature) {
+                return (temperature * (9/5)) + 32;
+            },
+            shouldConvertToCelsius: function (country) {
+                return ['BS', 'BZ', 'KY', 'PW', 'US', 'AS', 'VI'].indexOf(country) === -1;
+            },
+        	convert: function (country, temperature) {
+            	if (this.shouldConvertToCelsius(country)) {
+                	return this.toCelsius(temperature);
+	            }
+	
+    	        return temperature;
+        	}
+        }
+    }
+    
+    module.exports = TemperatureConverter;
+    
+Next let's replace the code in those functions with calls to the API exposed by our new object:
+
+    'use strict';
+    
+    var TemperatureConverter = require('weatherly/js/model/TemperatureConverter');
+    
+    var TodaysWeather = Backbone.Model.extend({
+        initialize: function () {
+            this.temperatureConverter = new TemperatureConverter();
+            this.attributes.temperature = this.convertTemperature(this.get('country'), this.get('temperature'));
+            this.attributes.apparentTemperature = this.convertTemperature(this.get('country'), this.get('apparentTemperature'));
+    
+            this.on('change:temperature', this.temperatureChanged, this);
+            this.on('change:apparentTemperature', this.apparentTemperatureChanged, this);
+            this.on('change:country', this.countryHasChanged, this);
+        },
+        temperatureChanged: function () {
+            this.attributes.temperature = this.convertTemperature(this.get('country'), this.get('temperature'));
+        },
+        apparentTemperatureChanged: function () {
+            this.attributes.apparentTemperature = this.convertTemperature(this.get('country'), this.get('apparentTemperature'));
+        },
+        countryHasChanged: function () {
+            if (this._previousAttributes.country !== this.get('country')) {
+                if (this.shouldConvertToCelsius(this.get('country'))) {
+                    this.attributes.temperature = this.convertToCelsius(this.get('temperature'));
+                    this.attributes.apparentTemperature = this.convertToCelsius(this.get('apparentTemperature'));
+                } else {
+                    this.attributes.temperature = this.convertToFahrenheit(this.get('temperature'));
+                    this.attributes.apparentTemperature = this.convertToFahrenheit(this.get('apparentTemperature'));
+                }
+            }
+        },
+        convertTemperature: function (country, temperature) {
+            return this.temperatureConverter.convert(country, temperature);
+        },
+        shouldConvertToCelsius: function (country) {
+            return this.temperatureConverter.shouldConvertToCelsius(country);
+        },
+        convertToCelsius: function (temperature) {
+            return this.temperatureConverter.toCelsius(temperature);
+        },
+        convertToFahrenheit: function (temperature) {
+            return this.temperatureConverter.toFahrenheit(temperature);
+        }
+    });
+    
+    module.exports = TodaysWeather;
+    
+Test should still be passing, so we can continue with our refactoring by replacing the wrapper calls with direct calls to the API, one method at a time, giving us:
+
+    'use strict';
+    
+    var TemperatureConverter = require('weatherly/js/model/TemperatureConverter');
+    
+    var TodaysWeather = Backbone.Model.extend({
+        initialize: function () {
+            this.temperatureConverter = new TemperatureConverter();
+    
+            this.attributes.temperature = this.temperatureConverter.convert(this.get('country'), this.get('temperature'));
+            this.attributes.apparentTemperature = this.temperatureConverter.convert(this.get('country'), this.get('apparentTemperature'));
+    
+            this.on('change:temperature', this.temperatureChanged, this);
+            this.on('change:apparentTemperature', this.apparentTemperatureChanged, this);
+            this.on('change:country', this.countryHasChanged, this);
+        },
+        temperatureChanged: function () {
+            this.attributes.temperature = this.temperatureConverter.convert(this.get('country'), this.get('temperature'));
+        },
+        apparentTemperatureChanged: function () {
+            this.attributes.apparentTemperature = this.temperatureConverter.convert(this.get('country'), this.get('apparentTemperature'));
+        },
+        countryHasChanged: function () {
+            if (this._previousAttributes.country !== this.get('country')) {
+                if (this.temperatureConverter.shouldConvertToCelsius(this.get('country'))) {
+                    this.attributes.temperature = this.temperatureConverter.toCelsius(this.get('temperature'));
+                    this.attributes.apparentTemperature = this.temperatureConverter.toCelsius(this.get('apparentTemperature'));
+                } else {
+                    this.attributes.temperature = this.temperatureConverter.toFahrenheit(this.get('temperature'));
+                    this.attributes.apparentTemperature = this.temperatureConverter.toFahrenheit(this.get('apparentTemperature'));
+                }
+            }
+        }
+    });
+    
+    module.exports = TodaysWeather;
 
 ##Before checkin
 Now that we are linting our code, if we ran the `jshint` task we would see the following error:
