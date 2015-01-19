@@ -125,6 +125,8 @@ We could install the binaries manually, but since I plan using Grunt to automate
 We use the `--save-dev` flag to indicate that we want to add this dependency to our package.json file, however only for development purposes (meaning that when we deploy to our 'production' environment, e.g. Heroku, it won't install the package during deployment). With that done let's create a Grunt task to start the Selenium server (just in case you missed it in the [Getting Started section]() you can find more information on Grunt and tasks over at [the official Grunt.js website](http://gruntjs.com/getting-started)). The first thing we'll need is a `Gruntfile.js`, so add one to the root of your project and edit it to contain the following:
 
 	module.exports = function(grunt) {
+		'use strict';
+		
 		grunt.initConfig({
 		});
 		
@@ -155,6 +157,8 @@ Let's also add a step to stop and start our web server when we are running our f
 And we'll edit our Grunt file so that it looks for our `server.js` and we can control the starting and stopping of our server:
 
 	module.exports = function(grunt) {
+		'use strict';
+		
 		grunt.initConfig({
     		express: {
       			test: {
@@ -348,6 +352,8 @@ If we were to once again try and execute our feature test, we would get an error
 And let's edit our `Gruntfile.js` to look like this now:
 
 	module.exports = function(grunt) {
+		'use strict';
+
 		grunt.initConfig({
     		express: {
       			test: {

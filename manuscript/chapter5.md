@@ -28,6 +28,8 @@ Our build tasks will take this import directive and create us a nice main.css fi
 And now let's create a task to generate our css files by adding to our `Gruntfile`:
 
     module.exports = function (grunt) {
+		'use strict';
+		    
         grunt.initConfig({
             express: {
                 test: {
@@ -88,6 +90,8 @@ Now bootstrap also needs some fonts, so let's move these across as part of the b
 And add a simple task to copy our fonts across as well:
 
     module.exports = function (grunt) {
+		'use strict';
+		
         grunt.initConfig({
             express: {
                 test: {
@@ -164,7 +168,9 @@ So here's how you go about installing our Build Pack for Grunt (be sure to repla
 Then we modify our Gruntfile to include a new `heroku:production` task, which basically references our `build` task:
 
     module.exports = function (grunt) {
-        grunt.initConfig({
+		'use strict';
+		
+		grunt.initConfig({
             express: {
                 test: {
                     options: {
@@ -274,6 +280,8 @@ Now we are nearly ready to test this out, however there is one more task we need
 And the  edit our `Gruntfile.js`:
 
     module.exports = function (grunt) {
+    	'use strict';
+        
         grunt.initConfig({
             express: {
                 test: {
@@ -388,7 +396,9 @@ The reason we have chosen a grunt task is that we will use this to export our so
 We'll skip through a few steps below and edit our `Gruntfile.js` to include the task we just installed, define the steps to build our JavaScript and include it into our build task:
 
     module.exports = function (grunt) {
-        grunt.initConfig({
+		'use strict';
+		
+		grunt.initConfig({
             express: {
                 test: {
                     options: {
@@ -467,7 +477,9 @@ I chose to go with Uglifyify, as always let's just install it:
 And then edit our `Gruntfile.js` by configuring our browserify task to use it is a transform:
 
     module.exports = function (grunt) {
-        grunt.initConfig({
+		'use strict';
+		
+		grunt.initConfig({
             express: {
                 test: {
                     options: {
