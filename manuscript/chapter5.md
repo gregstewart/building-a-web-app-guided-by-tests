@@ -320,10 +320,5 @@ Now we can merge our changes in:
 	git merge jshint-task
 	git push
 
-
- 
-
-
-
 ##Recap##
 We split our tasks into individual modules and introduced `grunt.loadTasks` directive to pull these modules into our build file. We then added a new `lint` task to make sure our code was ship shape.
