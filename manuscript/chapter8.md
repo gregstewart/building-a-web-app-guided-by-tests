@@ -31,17 +31,18 @@ Given the following story
 	So that I can decide whether to take an umbrella or not
 	
 
-Our first task task will be to display the current weather conditions for our vicinity. The acceptance criteria for this story might well state the following:
+Our first task task will be to display the current weather conditions for our vicinity. The acceptance criteria for this story might well state:
 
 	Display the following:
-	* our location
+
+ 	* our location
  	* the actual temperature
  	* the apparent temperature
  	* the current weather conditions
  	* the weather conditions for the next hour
  	* the weather conditions for the next 24 hours
  	
- 	The temperature should be displayed in either Fahrenheit or Celsius depending on the location. The following coutries use Fahrenheit: the Bahamas, Belize, the Cayman Islands, Palau and the United States and its associated territories of American Samoa and the U.S. Virgin Islands (source http://en.wikipedia.org/wiki/Fahrenheit).
+	The temperature should be displayed in either Fahrenheit or Celsius depending on the location. The following coutries use Fahrenheit: the Bahamas, Belize, the Cayman Islands, Palau and the United States and its associated territories of American Samoa and the U.S. Virgin Islands (source http://en.wikipedia.org/wiki/Fahrenheit).
 
 
 ##The Model##

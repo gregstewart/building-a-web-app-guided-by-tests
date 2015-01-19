@@ -71,7 +71,7 @@ Create a new folder in the root of our project called `build`, this is where we 
             grunt.loadNpmTasks('grunt-express-server');
     
             grunt.config('express', config);
-        }
+        };
     })(module);
     
 We hav basically taken all of the **Express** configuration out of the `Gruntfile.js` and moved the loading of the npm task into this file. In order for `Grunt` to now load this file we can use the `grunt.loadTasks('build');` directive.
@@ -119,7 +119,7 @@ Running `> grunt e2e` again should confirm that all is still well and our end to
             grunt.loadNpmTasks('grunt-cucumber');
     
             grunt.config('cucumberjs', config);
-        }
+        };
     })(module);
     
 Once we have removed the configuration of the task and the loading of these we are in the state described at the outset of this chapter:
@@ -226,7 +226,7 @@ Here are a few settings that have been useful in previous projects to get the ca
             source: {
                 src: [
                     './Gruntfile.js',
-                    './build/grunt/**/*.js',
+                    './build/**/*.js',
                     './tests/**/*.js',
                     './js/**/*.js',
                 ]
@@ -287,7 +287,7 @@ Oh lucky we added linting! Let's fix the problem:
             source: {
                 src: [
                     './Gruntfile.js',
-                    './build/grunt/**/*.js',
+                    './build/**/*.js',
                     './node_modules/weatherly/**/*.js',
                     './tests/**/*.js',
                     './js/**/*.js'

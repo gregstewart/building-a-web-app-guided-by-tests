@@ -45,7 +45,7 @@ And now let's create a task to generate our css files by adding a `less.js` file
             grunt.loadNpmTasks('grunt-contrib-less');
     
             grunt.config('less', config);
-        }
+        };
     })(module);
 
 To invoke this we could just type `grunt less:production`, but will doing more building of assets, so let's wrap this in a custom task in our `Gruntfile.js`
@@ -97,7 +97,7 @@ And add a simple task to copy our fonts across as well, create a `copy.js` in ou
             grunt.loadNpmTasks('grunt-contrib-copy');
     
             grunt.config('copy', config);
-        }
+        };
     })(module);
     
 Let's add this opying of fonts to our generate task, by editing our `Gruntfile.js`.
@@ -221,7 +221,7 @@ Once again we create a specific `bower.js` file in our build folder:
             grunt.loadNpmTasks('grunt-bower-task');
     
             grunt.config('bower', config);
-        }
+        };
     })(module);
     
 Annd register a task in our `Gruntfile.js`
@@ -304,7 +304,7 @@ We'll skip through a few steps below by creating a `browserify.js` file and edit
             grunt.loadNpmTasks('grunt-browserify');
     
             grunt.config('browserify', config);
-        }
+        };
     })(module);
     
  
@@ -350,7 +350,7 @@ And then edit our `browserify.js` file and telling the task to use it is a trans
             grunt.loadNpmTasks('grunt-browserify');
     
             grunt.config('browserify', config);
-        }
+        };
     })(module);
     
 If you now run our generate task, the contents of main should be nicely minified. Now all that's left to do is edit our `index.html` file and add our generated JavaScript file:

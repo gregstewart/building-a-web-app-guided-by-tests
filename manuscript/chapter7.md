@@ -156,7 +156,7 @@ Create a `build\test.js file`:
             grunt.loadNpmTasks('grunt-karma');
             
             grunt.config('karma', config);
-        }
+        };
     })(module);
 
 Let's try this out our new grunt task:
@@ -476,7 +476,7 @@ Exactly what we wanted. Let's now tackle our build versus development problem. W
             grunt.loadNpmTasks('grunt-karma');
     
             grunt.config('karma', config);
-        }
+        };
     })(module);
 
     
