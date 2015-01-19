@@ -251,10 +251,14 @@ In the [previous chapter](link here) we created a source folder and added a samp
 
 What we want to do know is validate our Karma configuration before we starting our real tests, so let's add a sample test to our `TodaysWeather-spec.js`:
 
+	'use strict';
+	/* exported TodaysWeather */
+	var TodaysWeather = require('weatherly/js/model/TodaysWeather');
+
 	describe('Today \'s weather', function () {
     	it('should return 2', function () {
        		expect(1+1).toBe(2);
-    	});
+	    });
 	});
 
 We could try and run our Karma task again, but this would only result in an error, because we are using the [CommonJS](http://wiki.commonjs.org/wiki/CommonJS) module approach and we would see an error stating that `module` is not defined, because our module under tests uses:
