@@ -680,7 +680,7 @@ One final thing before we close off this section. You may not want to run your c
             grunt.loadNpmTasks('grunt-karma');
 
             grunt.config('karma', config);
-        }
+        };
     })(module);
       
 We also do not want to commit our reports to our repos, so another `.gitignore` tweak is needed:
@@ -701,7 +701,86 @@ Time to commit and merge our changes:
 	> git commit -m "added coverage to dev process"
 	> git checkout master
 	> git merge code-coverage 
-	> git push			
+	> git push
+	
+##Linting as part of the build
+Since we are about to write some code we should circle back to adding the lint task to ci process. This is really straight forward now:
+
+	 git checkout -b linting-the-build
+	 
+ Open up `Gruntfile.js`	 and add the `jshint` task to our `test` task.
+ 
+     module.exports = function (grunt) {
+        'use strict';
+    
+        grunt.loadTasks('build');
+    
+        grunt.registerTask('generate', ['less:production', 'copy:fonts', 'browserify:code']);
+        grunt.registerTask('build', ['bower:install', 'generate']);
+    
+        grunt.registerTask('e2e', [
+            'selenium_start',
+            'express:test',
+            'cucumberjs',
+            'selenium_stop',
+            'express:test:stop'
+        ]);
+    
+        grunt.registerTask('test', ['jshint', 'build', 'karma:ci', 'e2e']);
+        grunt.registerTask('heroku:production', 'build');
+    };	
+    
+To verify it works locally just type `> grunt test`
+
+	Running "jshint:source" (jshint) task
+	>> 5 files lint free.
+
+	Running "bower:install" (bower) task
+	>> Installed bower packages
+	>> Copied packages to /Users/gregstewart/Projects/github/weatherly/bower_components
+
+	Running "less:production" (less) task
+	File app/css/main.css created: 131.45 kB → 108.43 kB
+
+	Running "copy:fonts" (copy) task
+	Copied 4 files
+
+	Running "browserify:code" (browserify) task
+
+	Running "karma:ci" (karma) task
+	INFO [karma]: Karma v0.12.17 server started at http://localhost:9876/
+	INFO [launcher]: Starting browser PhantomJS
+	INFO [PhantomJS 1.9.7 (Mac OS X)]: Connected on socket lR_IEn9s3FvaphN90JfV with id 32288954
+	PhantomJS 1.9.7 (Mac OS X): Executed 1 of 1 SUCCESS (0.002 secs / 0.002 secs)
+
+	Running "selenium_start" task
+	seleniumrc webdriver ready on 127.0.0.1:4444
+
+	Running "express:test" (express) task
+	Starting background Express server
+	Listening on port 3000
+	
+	Running "cucumberjs:src" (cucumberjs) task
+	...
+
+	1 scenario (1 passed)
+	3 steps (3 passed)
+
+	Running "selenium_stop" task
+
+	Running "express:test:stop" (express) task
+	Stopping Express server
+
+	Done, without errors.
+	
+Looking good let's commit the change and watch it go through the build:
+
+	git add .
+	git commit -m "Added lint to ci/test task"
+	git checkout master
+	git pull origin master
+	git merge linting-the-build
+	git push origin  master
 	
 ## Recap
 We covered quite a bit of ground here:
@@ -710,5 +789,6 @@ We covered quite a bit of ground here:
 * wrote a very basic unit test to validate the test runner was working
 * configured the tests for local continuous testing and single run during the build
 * added code coverage to our tooling
+* added linting to our ci run as well
 
 With that onwards to development guided by tests!
