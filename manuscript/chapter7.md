@@ -701,7 +701,7 @@ Time to commit and merge our changes:
 	> git commit -m "added coverage to dev process"
 	> git checkout master
 	> git merge code-coverage 
-	> git push
+	> git push			
 	
 ## Recap
 We covered quite a bit of ground here:

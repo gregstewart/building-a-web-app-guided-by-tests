@@ -307,6 +307,7 @@ We'll skip through a few steps below by creating a `browserify.js` file and edit
         };
     })(module);
     
+The `Gruntfile.js`:
  
     module.exports = function (grunt) {
 		'use strict';
