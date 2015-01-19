@@ -143,7 +143,9 @@ So we got an error, but that is because we have no tests. Let's wrap this into a
 And update our Gruntfile to load the task:
 
 	module.exports = function (grunt) {
-        grunt.initConfig({
+		'use strict';
+		
+		grunt.initConfig({
             express: {
                 test: {
                     options: {
@@ -357,6 +359,8 @@ Now that we have our test runner set up' let's add it to our build process. This
 Let's go ahead and create a task called `test` in our `Gruntfile` and configure it to execute these tasks:
 
     module.exports = function (grunt) {
+		'use strict';
+        
         grunt.initConfig({
             express: {
                 test: {
@@ -585,7 +589,9 @@ Try this out by running `grunt karma:unit` and after the first run has completed
 Exactly what we wanted. Let's now tackle our build versus development problem. We will just create a seperate build task that uses the same configuration file but overrides the properties we need for our build environment:
 
     module.exports = function (grunt) {
-        grunt.initConfig({
+		'use strict';
+		
+		grunt.initConfig({
             express: {
                 test: {
                     options: {
@@ -836,7 +842,9 @@ There's more information in the shape of an HTML report to be found under `repor
 One final thing before we close off this section. You may not want to run your coverage report as part the CI process. If you do then ignore this part. By editing our `Gruntfile` and for our `karma:ci` task overriding the reporter step with `reporters: ['progress']` we can skip this step for our build.
 
     module.exports = function (grunt) {
-        grunt.initConfig({
+		'use strict';
+		
+		grunt.initConfig({
             express: {
                 test: {
                     options: {
