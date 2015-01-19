@@ -248,7 +248,8 @@ If we were to run our cucumber tests now using `> cucumber.js tests/e2e/features
 This is extremely useful output. While it's clear that the code to execute the steps in the feature are undefined, the output actually gives snippets to create our step definitions. So let's go ahead and create our step definition. Inside of our functional test folder, create a `steps` folder and add a file called `using-weatherly-step-definitions.js` with the following content:
 
 	var UsingWeatherlyStepDefinitions = function () {
-
+		'use strict';
+		
     	this.Given(/^I am on the home page$/, function (callback) {
       		// express the regexp above with the code you wish you had
       		callback.pending();
@@ -284,32 +285,37 @@ The first bit of code we'll add to our tests is a [World object](https://github.
 
 Here's our world object (`world.js`), which we save into a folder called support under `tests/e2e`:
 
-	var webdriverjs = require('webdriverjs');
+    'use strict';
+    
+    var webdriverjs = require('webdriverjs');
+	/*jshint -W079 */
 	var expect = require('chai').expect;
-	var assert = require('chai').assert;
-
-	var client = webdriverjs.remote({ desiredCapabilities: {browserName: 'phantomjs'}, logLevel: 'silent' });
-
-	client.addCommand('hasText', function (selector, text, callback) {		this.getText(selector, function (error, result) {
-    		expect(result).to.have.string(text);
-    		callback();
-		});
-	});
-
-	client.init();
-
-
-	var World = function World(callback) {
-		this.browser = client;
-		this.port = process.env.PORT || 3000;
-		this.visit = function(url, callback) {
-    		this.browser.url(url, callback);
-    	};
-    	
-    	callback(); // tell Cucumber we're finished and to use 'this' as the world instance
-	};
-
-	exports.World = World;
+    
+    var client = webdriverjs.remote({ desiredCapabilities: {browserName: 'phantomjs'}, logLevel: 'silent' });
+    
+    client.addCommand('hasText', function (selector, text, callback) {
+        this.getText(selector, function (error, result) {
+            expect(result).to.have.string(text);
+            callback();
+        });
+    });
+    
+    client.init();
+    
+    
+    var World = function World(callback) {
+        this.browser = client;
+    
+        this.port = process.env.PORT || 3000;
+    
+        this.visit = function (url, callback) {
+            this.browser.url(url, callback);
+        };
+    
+        callback(); // tell Cucumber we're finished and to use 'this' as the world instance
+    };
+    
+    exports.World = World;
 
 Please note that if when running the tests you come across the message shown below (logging in verbose mode here), this simply (indeed simply...) means that webdriverjs cannot find phatomjs in your PATH.
 
@@ -325,23 +331,25 @@ Please note that if when running the tests you come across the message shown bel
 
 Now let's re-visit our `using-weatherly-step-definitions.js` and replace the contents with the following code:
 
-	var UsingWeatherlyStepDefinitions = function () {
-    	this.World = require("../support/world.js").World;
-
-	    this.Given(/^I am on the home page$/, function (callback) {
-      		this.visit('http://localhost:' + this.port + '/', callback);
-    	});
-
-    	this.When(/^I view the main content area$/, function (callback) {
-      		this.browser.hasText('.jumbotron h1', 'London Right Now', callback);
-    	});
-
-    	this.Then(/^I should see the temperature for my location$/, function (callback) {
-      		this.browser.hasText('p.temperature', '14 degrees', callback);
-    	});
-	};
-
-	module.exports = UsingWeatherlyStepDefinitions;
+    var UsingWeatherlyStepDefinitions = function () {
+        'use strict';
+    
+        this.World = require('../support/world.js').World;
+        
+        this.Given(/^I am on the home page$/, function (callback) {
+          this.visit('http://localhost:' + this.port + '/', callback);
+        });
+    
+        this.When(/^I view the main content area$/, function (callback) {
+          this.browser.hasText('.jumbotron h1', 'London Right Now', callback);
+        });
+    
+        this.Then(/^I should see the temperature for my location$/, function (callback) {
+          this.browser.hasText('p.temperature', '14 degrees', callback);
+        });
+    };
+    
+    module.exports = UsingWeatherlyStepDefinitions;
 
 The first step opens the site, and then we assert that the header element displays `London Right Now` and that the element with our temperature shows `14 degrees`
 
