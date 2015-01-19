@@ -364,6 +364,8 @@ This conversion should also take place if either value changes:
          	});
  
  Let's get these tests passing as well:
+
+	'use strict';	
  
      var TodaysWeather = Backbone.Model.extend({
         initialize: function () {
@@ -394,7 +396,9 @@ This conversion should also take place if either value changes:
     
 #### Red, Green, Refactor ####
 There are few improvements we can make to this code, now that all of our tests are passing and our coverage looks solid, it's time for the refactor phase:
-
+	
+	'use strict';
+	
 	var TodaysWeather = Backbone.Model.extend({
         initialize: function () {
             this.attributes.temperature = this.convertTemperature(this.get('country'), this.get('temperature'));
@@ -427,3 +431,73 @@ There are few improvements we can make to this code, now that all of our tests a
     module.exports = TodaysWeather;
     
 A final scenario that springs to mind is what happens if the location changes? What if travelled from the US to the UK? We should deal with this as well
+
+##Before checkin
+Now that we are linting our code, if we ran the `jshint` task we would see the following error:
+
+	Running "jshint:source" (jshint) task
+   	node_modules/weatherly/js/model/TodaysWeather.js
+      	3 |var TodaysWeather = Backbone.Model.extend({
+                             ^ 'Backbone' is not defined.
+                             
+`jshint` is not actually running our code and as a result does not know that we are including Backbone as a dependency. We can fix this by editing our `.jshintrc` file and telling it to include it as a global (on the third to last line):
+
+    {
+        "strict": true,
+        "unused": true,
+        "undef": true,
+        "camelcase": true,
+        "curly": true,
+        "eqeqeq": true,
+        "forin": true,
+        "indent": 4,
+        "newcap": true,
+        "trailing": true,
+        "maxdepth": 2,
+        "browser": true,
+        "devel": true,
+        "node": true,
+        "quotmark": true,
+    
+        "globals": {
+            "sinon": false,
+            "define": false,
+            "beforeEach": false,
+            "afterEach": false,
+            "expect": false,
+            "describe": false,
+            "it": false,
+            "xdescribe": false,
+            "ddescribe": false,
+            "xit": false,
+            "iit": false,
+            "jasmine": false,
+            "Backbone": false
+        }
+    }
+
+We should also not forget to lint our test code, so let's update the `jshint` task:
+
+    (function (module) {
+        'use strict';
+        var config = {
+            options: {
+                jshintrc: './.jshintrc'
+            },
+            source: {
+                src: [
+                    './Gruntfile.js',
+                    './build/grunt/**/*.js',
+                    './node_modules/weatherly/**/*.js',
+                    './tests/**/*.js',
+                    './js/**/*.js'
+                ]
+            }
+        };
+    
+        module.exports = function (grunt) {
+            grunt.loadNpmTasks('grunt-contrib-jshint');
+    
+            grunt.config('jshint', config);
+        };
+    })(module);
