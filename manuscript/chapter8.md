@@ -629,6 +629,21 @@ Test should still be passing, so we can continue with our refactoring by replaci
     });
     
     module.exports = TodaysWeather;
+    
+There's one more thing we can improve on in this object. Nested `if` statements are a problem, hard to read and hard to reason about. We can improve the readability of the `countryHasChanged` function by implemeting a guard clause:
+
+    countryHasChanged: function () {
+        if (this._previousAttributes.country === this.get('country')) {
+            	return;
+        }
+        if (this.temperatureConverter.shouldConvertToCelsius(this.get('country'))) {
+        	this.attributes.temperature = this.temperatureConverter.toCelsius(this.get('temperature'));
+        	this.attributes.apparentTemperature = this.temperatureConverter.toCelsius(this.get('apparentTemperature'));
+        } else {
+        	this.attributes.temperature = this.temperatureConverter.toFahrenheit(this.get('temperature'));
+        	this.attributes.apparentTemperature = this.temperatureConverter.toFahrenheit(this.get('apparentTemperature'));
+        }
+    }
 
 ##Before checkin
 Now that we are linting our code, if we ran the `jshint` task we would see the following error:
