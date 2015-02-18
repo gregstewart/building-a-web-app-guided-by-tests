@@ -645,7 +645,7 @@ There's one more thing we can improve on in this object. Nested `if` statements 
         }
     }
 
-##Before checkin
+### Before checkin
 Now that we are linting our code, if we ran the `jshint` task we would see the following error:
 
 	Running "jshint:source" (jshint) task
@@ -714,3 +714,12 @@ We should also not forget to lint our test code, so let's update the `jshint` ta
             grunt.config('jshint', config);
         };
     })(module);
+
+## The View
+Let's move on from our model and turn our attention to our `View`. 
+* Start off with the built in template mechanism and move to React for our view
+
+## The Route
+The glue that binds our Model to our View
+
+## The Application
