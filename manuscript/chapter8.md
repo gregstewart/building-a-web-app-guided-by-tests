@@ -87,17 +87,20 @@ This starts our test runner and runs the tests each time we save our code. Open 
             this.country = 'US';
             this.temperature = 47.39;
             this.apparentTemperature = 41.78;
+            this.currentWeatherConditions = 'Clear';
         });
     
         it('stores the values passed in', function () {
             var todaysWeather = new TodaysWeather({ location: this.location,
                 country: this.country,
                 temperature: this.temperature,
-                apparentTemperature: this.apparentTemperature});
+                apparentTemperature: this.apparentTemperature,
+            	currentWeatherConditions: this.currentWeatherConditions});
     
             expect(todaysWeather.get('location')).toBe(this.location);
             expect(todaysWeather.get('temperature')).toBe(this.temperature);
             expect(todaysWeather.get('apparentTemperature')).toBe(this.apparentTemperature);
+			expect(todaysWeather.get('currentWeatherConditions')).toBe(this.currentWeatherConditions);
         });
     });
 
@@ -718,6 +721,270 @@ We should also not forget to lint our test code, so let's update the `jshint` ta
 ## The View
 Let's move on from our model and turn our attention to our `View`. 
 * Start off with the built in template mechanism and move to React for our view
+* Edit karma.conf.js, backbone requires jquery, this version anyway
+	
+	// list of files / patterns to load in the browser
+    files: [
+    	'bower_components/jquery/dist/jquery.js',
+        'node_modules/backbone/node_modules/underscore/underscore.js',
+        'node_modules/backbone/backbone.js',
+        'node_modules/weatherly/js/**/*.js',
+        'tests/unit/**/*.js'
+    ],
+    
+First test in `/unit/view/`
+
+	'use strict';
+
+	var TodaysWeatherView = require('weatherly/js/view/TodaysWeather');
+
+	describe('Today \'s weather view', function () {
+    	var view;
+
+    	beforeEach(function () {
+        	view = new TodaysWeatherView();
+        	view.render();
+        });
+
+    	it('creates a container for the weather right now', function () {
+        	expect(view.el.id).toBe('right-now');
+    	});
+	});
+
+
+And the code to make this pass is:
+
+	'use strict';
+
+	var TodaysWeatherView = Backbone.View.extend({
+    	tagName: 'div',
+    	id: 'right-now',
+    	render: function() {
+        	return this;
+    	}
+	});
+
+	module.exports = TodaysWeatherView;
+
+Ok now base view done let's add a template:
+
+    'use strict';
+    
+    var TodaysWeatherView = require('weatherly/js/view/TodaysWeather');
+    
+    describe('Today \'s weather view', function () {
+        var view;
+    
+        beforeEach(function () {
+            view = new TodaysWeatherView();
+            view.render();
+        });
+    
+        it('creates a container for the weather right now', function () {
+            expect(view.el.id).toBe('right-now');
+        });
+    
+        it('has a header element', function () {
+            expect(view.el.querySelector('h1').innerText).toBe('London Right Now');
+        });
+    });
+    
+Make the test pass:
+
+    'use strict';
+    
+    var TodaysWeatherView = Backbone.View.extend({
+        tagName: 'div',
+        id: 'right-now',
+        header: _.template('<h1>London Right Now</h1>'),
+        render: function() {
+            this.$el.html(this.header());
+            return this;
+        }
+    });
+    
+    module.exports = TodaysWeatherView;
+    
+Not very dynamic though, let's fix this:
+
+    'use strict';
+    
+    var TodaysWeatherView = Backbone.View.extend({
+        tagName: 'div',
+        id: 'right-now',
+        header: _.template('<h1><%- location %> Right Now</h1>'),
+        render: function() {
+            this.$el.html(this.header({location: this.model.get('location')}));
+            return this;
+        }
+    });
+    
+    module.exports = TodaysWeatherView;
+    
+Tests fail now, so we need to update them:
+
+    'use strict';
+    
+    var TodaysWeatherView = require('weatherly/js/view/TodaysWeather');
+    
+    describe('Today \'s weather view', function () {
+        var view;
+    
+        beforeEach(function () {
+            var model = new Backbone.Model({location: 'London'});
+            view = new TodaysWeatherView({model: model});
+            view.render();
+        });
+    
+        it('creates a container for the weather right now', function () {
+            expect(view.el.id).toBe('right-now');
+        });
+    
+        it('has a header element', function () {
+            expect(view.el.querySelector('h1').innerText).toBe('London Right Now');
+        });
+    });
+    
+Let's continue by adding the next few elements for the hero display:
+
+    'use strict';
+
+    var TodaysWeatherView = require('weatherly/js/view/TodaysWeather');
+
+    describe('Today \'s weather view', function () {
+        var view;
+
+        beforeEach(function () {
+            var model = new Backbone.Model({location: 'London', temperature: '14', currentWeatherConditions: 'Clear', apparentTemperature: '14'});
+            view = new TodaysWeatherView({model: model});
+            view.render();
+        });
+
+        it('creates a container for the weather right now', function () {
+            expect(view.el.id).toBe('right-now');
+        });
+
+        it('has a header element', function () {
+            expect(view.el.querySelector('h1').innerText).toBe('London Right Now');
+        });
+
+        it('has a temperature element', function () {
+            expect(view.el.querySelector('p.temperature').innerText).toBe('14 degrees');
+        });
+
+        it('has a feels-like element', function () {
+            expect(view.el.querySelector('p.feels-like').innerText).toBe('Clear - feels like 14 degrees');
+        });
+    });
+
+And not the code: 
+
+    'use strict';
+
+    var TodaysWeatherView = Backbone.View.extend({
+        tagName: 'div',
+        id: 'right-now',
+        header: _.template('<h1><%- location %> Right Now</h1>'),
+        temperature: _.template('<p class="temperature"><%- temperature %> degrees</p>'),
+        feelsLike: _.template('<p class="feels-like"><%- currentWeatherConditions %> - feels like <%- apparentTemperature %> degrees</p>'),
+        render: function() {
+            var header = this.header({location: this.model.get('location')}),
+                temperature = this.temperature({temperature: this.model.get('temperature')}),
+                feelsLike = this.feelsLike({currentWeatherConditions: this.model.get('currentWeatherConditions'), apparentTemperature: this.model.get('apparentTemperature')});
+
+            this.$el.append(header).append(temperature).append(feelsLike);
+            return this;
+        }
+    });
+
+    module.exports = TodaysWeatherView;
+    
+You shouldn't mix your JS with HTML let's extract the templates:
+
+    'use strict';
+    
+    var header = _.template('<h1><%- location %> Right Now</h1>');
+    
+    module.exports = header;
+    
+They all follow the same pattern:
+    
+    'use strict';
+
+	var temperature = _.template('<p class="temperature"><%- temperature %> degrees</p>');
+
+	module.exports = temperature;
+	
+Last one: 
+
+    'use strict';
+    
+    var feelsLike = _.template('<p class="feels-like"><%- currentWeatherConditions %> - feels like <%- apparentTemperature %> degrees</p>');
+    
+    module.exports = feelsLike;
+
+Refactored view: 
+
+    'use strict';
+    
+    var header = require('weatherly/js/templates/header'),
+        temperature = require('weatherly/js/templates/temperature'),
+        feelsLike = require('weatherly/js/templates/feelsLike');
+    
+    var TodaysWeatherView = Backbone.View.extend({
+        initialize: function() {
+            this.header = header;
+            this.temperature = temperature;
+            this.feelsLike = feelsLike;
+        },
+        tagName: 'div',
+        id: 'right-now',
+        render: function() {
+            this.$el.append(this.header({location: this.model.get('location')}))
+                .append(this.temperature({temperature: this.model.get('temperature')}))
+                .append(this.feelsLike({currentWeatherConditions: this.model.get('currentWeatherConditions'), apparentTemperature: this.model.get('apparentTemperature')}));
+            return this;
+        }
+    });
+    
+    module.exports = TodaysWeatherView;
+    
+Need to update .jshintrc for `underscore`:
+    
+    {
+        "strict": true,
+        "unused": true,
+        "undef": true,
+        "camelcase": true,
+        "curly": true,
+        "eqeqeq": true,
+        "forin": true,
+        "indent": 4,
+        "newcap": true,
+        "trailing": true,
+        "maxdepth": 2,
+        "browser": true,
+        "devel": true,
+        "node": true,
+        "quotmark": true,
+    
+        "globals": {
+            "sinon": false,
+            "define": false,
+            "beforeEach": false,
+            "afterEach": false,
+            "expect": false,
+            "describe": false,
+            "it": false,
+            "xdescribe": false,
+            "ddescribe": false,
+            "xit": false,
+            "iit": false,
+            "jasmine": false,
+            "_": false,
+            "Backbone": false
+        }
+    }
 
 ## The Route
 The glue that binds our Model to our View
