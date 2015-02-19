@@ -201,7 +201,7 @@ We could try and run our Karma task again, but this would only result in an erro
 
 We need to somehow tell our test runner that we use the CommonJS module type and resolve `module` and `require`. Once again we will resort to a npm module: `karma-commonjs`:
 
-	> npm install karma-commonjs --save-dev
+	> npm install karma-browserify --save-dev
 
 Next we need to update our `karma.conf.js` file:
 	
@@ -217,7 +217,7 @@ Next we need to update our `karma.conf.js` file:
 
             // frameworks to use
             // available frameworks: https://npmjs.org/browse/keyword/karma-adapter
-            frameworks: ['jasmine', 'commonjs'],
+            frameworks: ['jasmine', 'browserify'],
 
 
             // list of files / patterns to load in the browser
@@ -235,8 +235,8 @@ Next we need to update our `karma.conf.js` file:
             // preprocess matching files before serving them to the browser
             // available preprocessors: https://npmjs.org/browse/keyword/karma-preprocessor
             preprocessors: {
-                'node_modules/weatherly/js/**/*.js': ['commonjs'],
-                'tests/unit/**/*.js': ['commonjs']
+                'node_modules/weatherly/js/**/*.js': ['browserify'],
+                'tests/unit/**/*.js': ['browserify']
             },
 
 
@@ -389,7 +389,7 @@ Let'start by modifying our `karma.conf.js` file to run tests continuously:
 
             // frameworks to use
             // available frameworks: https://npmjs.org/browse/keyword/karma-adapter
-            frameworks: ['jasmine', 'commonjs'],
+            frameworks: ['jasmine', 'browserify'],
 
 
             // list of files / patterns to load in the browser
@@ -407,8 +407,8 @@ Let'start by modifying our `karma.conf.js` file to run tests continuously:
             // preprocess matching files before serving them to the browser
             // available preprocessors: https://npmjs.org/browse/keyword/karma-preprocessor
             preprocessors: {
-                'node_modules/weatherly/js/**/*.js': ['commonjs'],
-                'tests/unit/**/*.js': ['commonjs']
+                'node_modules/weatherly/js/**/*.js': ['browserify'],
+                'tests/unit/**/*.js': ['browserify']
             },
 
 
@@ -575,7 +575,7 @@ And modify our `karma.conf.js` file:
     
             // frameworks to use
             // available frameworks: https://npmjs.org/browse/keyword/karma-adapter
-            frameworks: ['jasmine', 'commonjs'],
+            frameworks: ['jasmine', 'browserify'],
     
     
             // list of files / patterns to load in the browser
@@ -593,8 +593,8 @@ And modify our `karma.conf.js` file:
             // preprocess matching files before serving them to the browser
             // available preprocessors: https://npmjs.org/browse/keyword/karma-preprocessor
             preprocessors: {
-                'node_modules/weatherly/js/**/*.js': ['commonjs', 'coverage'],
-                'tests/unit/**/*.js': ['commonjs'],
+                'node_modules/weatherly/js/**/*.js': ['browserify', 'coverage'],
+                'tests/unit/**/*.js': ['browserify'],
             },
     
     
