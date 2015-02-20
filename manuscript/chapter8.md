@@ -826,7 +826,7 @@ So that's our static approach done, let's make this data driven by using a model
     
     module.exports = TodaysWeatherView;
     
-When you save the file you will see that our tests now fail, because `this.model` is undefined. So we need to fix how instantiate the view, by passing in a model. Now we don't need to actually use the model we created, we can create a `Backbone.Model` and set a `location` attribute and give it a value.
+When you save the file you will see that our tests now fail, because `this.model` is undefined. So we need to fix how instantiate the view. We do this by passing in a model. Now we don't need to actually use the model we created, we can use a `Backbone.Model` and set a `location` attribute and give it a value. When writing unit tests we generally want to limit the interaction between objects to a minimum, and while we could have used other tools to `mock` our model, in this case the basic `Backbone.Model` is good enough for now. We will discuss `mock`s, `stub`s and `fake`s later on.
 
     'use strict';
     
@@ -850,7 +850,7 @@ When you save the file you will see that our tests now fail, because `this.model
         });
     });
     
-Let's continue by adding the next few elements for the hero display:
+Test should be green again, so we let's continue by adding the next few elements for that area of the display:
 
     'use strict';
 
@@ -882,7 +882,7 @@ Let's continue by adding the next few elements for the hero display:
         });
     });
 
-And not the code: 
+And now the code to make this pass: 
 
     'use strict';
 
@@ -904,7 +904,7 @@ And not the code:
 
     module.exports = TodaysWeatherView;
     
-You shouldn't mix your JS with HTML let's extract the templates:
+We are now in a good spot, we are now in a position to render all of the content we displayed inside of our `jumbotron` element. We are not quite done yet, it's once again time to improve our code. As a rule you shouldn't mix your JS with HTML let's extract all of the templates, starting with our header, let's create a `template` folder and add the following to a `header.js` file:
 
     'use strict';
     
@@ -912,7 +912,7 @@ You shouldn't mix your JS with HTML let's extract the templates:
     
     module.exports = header;
     
-They all follow the same pattern:
+The other two follow the same pattern, here is `temperature.js`:
     
     'use strict';
 
@@ -920,7 +920,7 @@ They all follow the same pattern:
 
 	module.exports = temperature;
 	
-Last one: 
+And lastly `feelsLike.js`: 
 
     'use strict';
     
@@ -928,7 +928,7 @@ Last one:
     
     module.exports = feelsLike;
 
-Refactored view: 
+With that we can require them into our view and assign them to the context of the view by adding an `initialize` method: 
 
     'use strict';
     
@@ -954,7 +954,12 @@ Refactored view:
     
     module.exports = TodaysWeatherView;
     
-Need to update .jshintrc for `underscore`:
+You might be tempted to pass in the model as an argument to the templates to keep the number of arguments down, but that's not a good design. If you do that the templates all of a sudden need to have knowledge about an object external to them. In other words if you passed in model, then the template would need to know about the `get` method on the object and the actual attribute name, e.g. `location`. Furthermore you would have coupled the template to `BackBone.Model`
+
+__TODO fix duplcation in temp + 'degrees'__
+__TODO can we make render open closed?__
+
+At this stage let's commit all of our work, but before we do we need to update .jshintrc so that it includes `_` (a.ka. `Underscore.js`), otherwise we would have linting errors on commit:
     
     {
         "strict": true,
@@ -990,6 +995,12 @@ Need to update .jshintrc for `underscore`:
             "Backbone": false
         }
     }
+
+Right let's commit:
+
+	$ git add .
+	$ git commit -m "Hero content uses BackBone.View and templaes to render"
+
 
 ## The Route
 The glue that binds our Model to our View
