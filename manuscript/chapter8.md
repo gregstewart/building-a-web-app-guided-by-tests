@@ -719,11 +719,11 @@ We should also not forget to lint our test code, so let's update the `jshint` ta
     })(module);
 
 ## The View
-Let's move on from our model and turn our attention to our `View`. 
-* Start off with the built in template mechanism and move to React for our view
-* Edit karma.conf.js, backbone requires jquery, this version anyway
+Let's move on from our model and turn our attention to our `View`. We'll start off by creating a view object that will use static data to render the page fragment. Once we are happy that this works, we'll make things a little more dynamic by using model data for the relevant view fragments.
+
+To avoid any errors during testing we need to edit our `karma.conf.js` and tell it to include `jQuery` since Backbone needs it:
 	
-	// list of files / patterns to load in the browser
+    // list of files / patterns to load in the browser
     files: [
     	'bower_components/jquery/dist/jquery.js',
         'node_modules/backbone/node_modules/underscore/underscore.js',
@@ -732,7 +732,7 @@ Let's move on from our model and turn our attention to our `View`.
         'tests/unit/**/*.js'
     ],
     
-First test in `/unit/view/`
+So let's start with a test. Create `TodaysWeatherView-spec.js` in `/unit/view/` and add the following code:
 
 	'use strict';
 
@@ -751,8 +751,7 @@ First test in `/unit/view/`
     	});
 	});
 
-
-And the code to make this pass is:
+This is a very simple test that makes sure when we initialise our view object it creates an `el` element with and Id of `right-now`. And the code to make this pass is:
 
 	'use strict';
 
@@ -766,7 +765,13 @@ And the code to make this pass is:
 
 	module.exports = TodaysWeatherView;
 
-Ok now base view done let's add a template:
+With that done let's add a template and render it. We'll be making use of `underscore` [templates](http://underscorejs.org/#template). They are simple to use and are already included by virtue of Backbone's dependency on `Underscore.js`. If you wish you could [choose any other template engine](http://backbonejs.org/#View-template) out there to render your views. Here are a few you could use:
+
+* [Mustache.js](http://github.com/janl/mustache.js)
+* [React](http://facebook.github.io/react/)
+* [Haml-js](http://github.com/creationix/haml-js)
+
+Our mark-up in our `index.html` file shows that we display `<h1>London Right Now</h1>`, so let's start with this by adding the following test:
 
     'use strict';
     
@@ -789,7 +794,7 @@ Ok now base view done let's add a template:
         });
     });
     
-Make the test pass:
+To make the test pass, let's create a helper function called `header` which calls the templating engine and then we inject the result into the `el` element we created previously using `jQuery`:
 
     'use strict';
     
@@ -805,7 +810,7 @@ Make the test pass:
     
     module.exports = TodaysWeatherView;
     
-Not very dynamic though, let's fix this:
+So that's our static approach done, let's make this data driven by using a model attribute. `London` in our example is the part of the string that is variable and dynamic. If you recall we created a model with a `location` attribute, which is perfect for this. So let's amend our `header` helper method in our `view` code a little to use interpolation (`<%- location %>`). Furthermore we will need to pass in the value to that helper method (`this.model.get('location')`):
 
     'use strict';
     
@@ -821,7 +826,7 @@ Not very dynamic though, let's fix this:
     
     module.exports = TodaysWeatherView;
     
-Tests fail now, so we need to update them:
+When you save the file you will see that our tests now fail, because `this.model` is undefined. So we need to fix how instantiate the view, by passing in a model. Now we don't need to actually use the model we created, we can create a `Backbone.Model` and set a `location` attribute and give it a value.
 
     'use strict';
     
