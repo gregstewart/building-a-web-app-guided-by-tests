@@ -87,17 +87,20 @@ This starts our test runner and runs the tests each time we save our code. Open 
             this.country = 'US';
             this.temperature = 47.39;
             this.apparentTemperature = 41.78;
+            this.currentWeatherConditions = 'Clear';
         });
     
         it('stores the values passed in', function () {
             var todaysWeather = new TodaysWeather({ location: this.location,
                 country: this.country,
                 temperature: this.temperature,
-                apparentTemperature: this.apparentTemperature});
+                apparentTemperature: this.apparentTemperature,
+            	currentWeatherConditions: this.currentWeatherConditions});
     
             expect(todaysWeather.get('location')).toBe(this.location);
             expect(todaysWeather.get('temperature')).toBe(this.temperature);
             expect(todaysWeather.get('apparentTemperature')).toBe(this.apparentTemperature);
+	    expect(todaysWeather.get('currentWeatherConditions')).toBe(this.currentWeatherConditions);
         });
     });
 
@@ -426,4 +429,576 @@ There are few improvements we can make to this code, now that all of our tests a
 
     module.exports = TodaysWeather;
     
-A final scenario that springs to mind is what happens if the location changes? What if travelled from the US to the UK? We should deal with this as well
+I was able to extract two methods, one for figuring out whether the country we are in wants the temperature in Celsius or Fahrenheit (`shouldConvertToCelsius`) and another to do the actual conversion from Fahrenheit to Celsius (`convertToCelsius`). The upshot of this step is that  the `convertTemperature` is easier to read and simpler to understand.
+    
+###Where another requirement emerges
+Just as you think you are done, your product owner points out the following scenario: "What happens if the location changes? What if travelled from the US to the UK? Shouldn't the temperature be updated as well?" We should deal with this and here are the tests to cover this:
+	
+	...
+		describe('Location changes', function () {
+            it('should convert if we were in a Fahrenheit country but are now in the "UK"', function () {
+                var expected = (this.temperature - 32) * (5/9),
+                    todaysWeather = new TodaysWeather({ location: 'Boston',
+                    country: 'US',
+                    temperature: this.temperature,
+                    apparentTemperature: this.apparentTemperature});
+
+                expect(todaysWeather.get('temperature')).toBe(this.temperature);
+
+                todaysWeather.set('location', 'UK');
+                expect(todaysWeather.get('temperature')).toBe(expected);
+            });
+
+            it('should convert if we were in a Celsius country but are now in the "US"', function () {
+                var originalTemperature = this.temperature,
+                    expected = (this.temperature - 32) * (5/9),
+                    todaysWeather = new TodaysWeather({ location: 'London',
+                        country: 'UK',
+                        temperature: this.temperature,
+                        apparentTemperature: this.apparentTemperature});
+
+                expect(todaysWeather.get('temperature')).toBe(expected);
+
+                todaysWeather.set('location', 'US');
+                expect(todaysWeather.get('temperature')).toBe(originalTemperature);
+            });
+        });
+
+
+The code to make these tests pass:
+
+    'use strict';
+    
+    var TodaysWeather = Backbone.Model.extend({
+        initialize: function () {
+            this.attributes.temperature = this.convertTemperature(this.get('country'), this.get('temperature'));
+            this.attributes.apparentTemperature = this.convertTemperature(this.get('country'), this.get('apparentTemperature'));
+    
+            this.on('change:temperature', this.temperatureChanged, this);
+            this.on('change:apparentTemperature', this.apparentTemperatureChanged, this);
+            this.on('change:country', this.countryHasChanged, this);
+        },
+        temperatureChanged: function () {
+            this.attributes.temperature = this.convertTemperature(this.get('country'), this.get('temperature'));
+        },
+        apparentTemperatureChanged: function () {
+            this.attributes.apparentTemperature = this.convertTemperature(this.get('country'), this.get('apparentTemperature'));
+        },
+        countryHasChanged: function () {
+            if (this._previousAttributes.country !== this.get('country')) {
+                if(this.shouldConvertToCelsius(this.get('country'))) {
+                    this.attributes.temperature = this.convertToCelsius(this.get('temperature'));
+                    this.attributes.apparentTemperature = this.convertToCelsius(this.get('apparentTemperature'));
+                } else {
+                    this.attributes.temperature = this.convertToFahrenheit(this.get('temperature'));
+                    this.attributes.apparentTemperature = this.convertToFahrenheit(this.get('apparentTemperature'));
+                }
+            }
+        },
+        convertTemperature: function (country, temperature) {
+            if(this.shouldConvertToCelsius(country)) {
+                return this.convertToCelsius(temperature);
+            }
+    
+            return temperature;
+        },
+        shouldConvertToCelsius: function (country) {
+            return ['BS', 'BZ', 'KY', 'PW', 'US', 'AS', 'VI'].indexOf(country) === -1;
+        },
+        convertToCelsius: function (temperature) {
+            return (temperature - 32) * (5/9);
+        },
+        convertToFahrenheit: function (temperature) {
+            return (temperature * (9/5)) + 32;
+        }
+    });
+    
+    module.exports = TodaysWeather;
+    
+At this stage we can once again do some more refactoring. The functions for converting temperatures have nothing to with Today's Weather object, so let's extract these into it's own module `TemperatureConverter.js`:
+
+    'use strict';
+    
+    var TemperatureConverter = function () {
+        return {
+            toCelsius: function (temperature) {
+                return (temperature - 32) * (5/9);
+            },
+            toFahrenheit: function (temperature) {
+                return (temperature * (9/5)) + 32;
+            },
+            shouldConvertToCelsius: function (country) {
+                return ['BS', 'BZ', 'KY', 'PW', 'US', 'AS', 'VI'].indexOf(country) === -1;
+            },
+        	convert: function (country, temperature) {
+            	if (this.shouldConvertToCelsius(country)) {
+                	return this.toCelsius(temperature);
+	            }
+	
+    	        return temperature;
+        	}
+        }
+    }
+    
+    module.exports = TemperatureConverter;
+    
+Next let's replace the code in those functions with calls to the API exposed by our new object:
+
+    'use strict';
+    
+    var TemperatureConverter = require('weatherly/js/model/TemperatureConverter');
+    
+    var TodaysWeather = Backbone.Model.extend({
+        initialize: function () {
+            this.temperatureConverter = new TemperatureConverter();
+            this.attributes.temperature = this.convertTemperature(this.get('country'), this.get('temperature'));
+            this.attributes.apparentTemperature = this.convertTemperature(this.get('country'), this.get('apparentTemperature'));
+    
+            this.on('change:temperature', this.temperatureChanged, this);
+            this.on('change:apparentTemperature', this.apparentTemperatureChanged, this);
+            this.on('change:country', this.countryHasChanged, this);
+        },
+        temperatureChanged: function () {
+            this.attributes.temperature = this.convertTemperature(this.get('country'), this.get('temperature'));
+        },
+        apparentTemperatureChanged: function () {
+            this.attributes.apparentTemperature = this.convertTemperature(this.get('country'), this.get('apparentTemperature'));
+        },
+        countryHasChanged: function () {
+            if (this._previousAttributes.country !== this.get('country')) {
+                if (this.shouldConvertToCelsius(this.get('country'))) {
+                    this.attributes.temperature = this.convertToCelsius(this.get('temperature'));
+                    this.attributes.apparentTemperature = this.convertToCelsius(this.get('apparentTemperature'));
+                } else {
+                    this.attributes.temperature = this.convertToFahrenheit(this.get('temperature'));
+                    this.attributes.apparentTemperature = this.convertToFahrenheit(this.get('apparentTemperature'));
+                }
+            }
+        },
+        convertTemperature: function (country, temperature) {
+            return this.temperatureConverter.convert(country, temperature);
+        },
+        shouldConvertToCelsius: function (country) {
+            return this.temperatureConverter.shouldConvertToCelsius(country);
+        },
+        convertToCelsius: function (temperature) {
+            return this.temperatureConverter.toCelsius(temperature);
+        },
+        convertToFahrenheit: function (temperature) {
+            return this.temperatureConverter.toFahrenheit(temperature);
+        }
+    });
+    
+    module.exports = TodaysWeather;
+    
+Test should still be passing, so we can continue with our refactoring by replacing the wrapper calls with direct calls to the API, one method at a time, giving us:
+
+    'use strict';
+    
+    var TemperatureConverter = require('weatherly/js/model/TemperatureConverter');
+    
+    var TodaysWeather = Backbone.Model.extend({
+        initialize: function () {
+            this.temperatureConverter = new TemperatureConverter();
+    
+            this.attributes.temperature = this.temperatureConverter.convert(this.get('country'), this.get('temperature'));
+            this.attributes.apparentTemperature = this.temperatureConverter.convert(this.get('country'), this.get('apparentTemperature'));
+    
+            this.on('change:temperature', this.temperatureChanged, this);
+            this.on('change:apparentTemperature', this.apparentTemperatureChanged, this);
+            this.on('change:country', this.countryHasChanged, this);
+        },
+        temperatureChanged: function () {
+            this.attributes.temperature = this.temperatureConverter.convert(this.get('country'), this.get('temperature'));
+        },
+        apparentTemperatureChanged: function () {
+            this.attributes.apparentTemperature = this.temperatureConverter.convert(this.get('country'), this.get('apparentTemperature'));
+        },
+        countryHasChanged: function () {
+            if (this._previousAttributes.country !== this.get('country')) {
+                if (this.temperatureConverter.shouldConvertToCelsius(this.get('country'))) {
+                    this.attributes.temperature = this.temperatureConverter.toCelsius(this.get('temperature'));
+                    this.attributes.apparentTemperature = this.temperatureConverter.toCelsius(this.get('apparentTemperature'));
+                } else {
+                    this.attributes.temperature = this.temperatureConverter.toFahrenheit(this.get('temperature'));
+                    this.attributes.apparentTemperature = this.temperatureConverter.toFahrenheit(this.get('apparentTemperature'));
+                }
+            }
+        }
+    });
+    
+    module.exports = TodaysWeather;
+    
+There's one more thing we can improve on in this object. Nested `if` statements are a problem, hard to read and hard to reason about. We can improve the readability of the `countryHasChanged` function by implemeting a guard clause:
+
+    countryHasChanged: function () {
+        if (this._previousAttributes.country === this.get('country')) {
+            	return;
+        }
+        if (this.temperatureConverter.shouldConvertToCelsius(this.get('country'))) {
+        	this.attributes.temperature = this.temperatureConverter.toCelsius(this.get('temperature'));
+        	this.attributes.apparentTemperature = this.temperatureConverter.toCelsius(this.get('apparentTemperature'));
+        } else {
+        	this.attributes.temperature = this.temperatureConverter.toFahrenheit(this.get('temperature'));
+        	this.attributes.apparentTemperature = this.temperatureConverter.toFahrenheit(this.get('apparentTemperature'));
+        }
+    }
+
+### Before checkin
+Now that we are linting our code, if we ran the `jshint` task we would see the following error:
+
+	Running "jshint:source" (jshint) task
+   	node_modules/weatherly/js/model/TodaysWeather.js
+      	3 |var TodaysWeather = Backbone.Model.extend({
+                             ^ 'Backbone' is not defined.
+                             
+`jshint` is not actually running our code and as a result does not know that we are including Backbone as a dependency. We can fix this by editing our `.jshintrc` file and telling it to include it as a global (on the third to last line):
+
+    {
+        "strict": true,
+        "unused": true,
+        "undef": true,
+        "camelcase": true,
+        "curly": true,
+        "eqeqeq": true,
+        "forin": true,
+        "indent": 4,
+        "newcap": true,
+        "trailing": true,
+        "maxdepth": 2,
+        "browser": true,
+        "devel": true,
+        "node": true,
+        "quotmark": true,
+    
+        "globals": {
+            "sinon": false,
+            "define": false,
+            "beforeEach": false,
+            "afterEach": false,
+            "expect": false,
+            "describe": false,
+            "it": false,
+            "xdescribe": false,
+            "ddescribe": false,
+            "xit": false,
+            "iit": false,
+            "jasmine": false,
+            "Backbone": false
+        }
+    }
+
+We should also not forget to lint our test code, so let's update the `jshint` task:
+
+    (function (module) {
+        'use strict';
+        var config = {
+            options: {
+                jshintrc: './.jshintrc'
+            },
+            source: {
+                src: [
+                    './Gruntfile.js',
+                    './build/grunt/**/*.js',
+                    './node_modules/weatherly/**/*.js',
+                    './tests/**/*.js',
+                    './js/**/*.js'
+                ]
+            }
+        };
+    
+        module.exports = function (grunt) {
+            grunt.loadNpmTasks('grunt-contrib-jshint');
+    
+            grunt.config('jshint', config);
+        };
+    })(module);
+
+## The View
+Let's move on from our model and turn our attention to our `View`. We'll start off by creating a view object that will use static data to render the page fragment. Once we are happy that this works, we'll make things a little more dynamic by using model data for the relevant view fragments.
+
+To avoid any errors during testing we need to edit our `karma.conf.js` and tell it to include `jQuery` since Backbone needs it:
+	
+    // list of files / patterns to load in the browser
+    files: [
+    	'bower_components/jquery/dist/jquery.js',
+        'node_modules/backbone/node_modules/underscore/underscore.js',
+        'node_modules/backbone/backbone.js',
+        'node_modules/weatherly/js/**/*.js',
+        'tests/unit/**/*.js'
+    ],
+    
+So let's start with a test. Create `TodaysWeatherView-spec.js` in `/unit/view/` and add the following code:
+
+	'use strict';
+
+	var TodaysWeatherView = require('weatherly/js/view/TodaysWeather');
+
+	describe('Today \'s weather view', function () {
+    	var view;
+
+    	beforeEach(function () {
+        	view = new TodaysWeatherView();
+        	view.render();
+        });
+
+    	it('creates a container for the weather right now', function () {
+        	expect(view.el.id).toBe('right-now');
+    	});
+	});
+
+This is a very simple test that makes sure when we initialise our view object it creates an `el` element with and Id of `right-now`. And the code to make this pass is:
+
+	'use strict';
+
+	var TodaysWeatherView = Backbone.View.extend({
+    	tagName: 'div',
+    	id: 'right-now',
+    	render: function() {
+        	return this;
+    	}
+	});
+
+	module.exports = TodaysWeatherView;
+
+With that done let's add a template and render it. We'll be making use of `underscore` [templates](http://underscorejs.org/#template). They are simple to use and are already included by virtue of Backbone's dependency on `Underscore.js`. If you wish you could [choose any other template engine](http://backbonejs.org/#View-template) out there to render your views. Here are a few you could use:
+
+* [Mustache.js](http://github.com/janl/mustache.js)
+* [React](http://facebook.github.io/react/)
+* [Haml-js](http://github.com/creationix/haml-js)
+
+Our mark-up in our `index.html` file shows that we display `<h1>London Right Now</h1>`, so let's start with this by adding the following test:
+
+    'use strict';
+    
+    var TodaysWeatherView = require('weatherly/js/view/TodaysWeather');
+    
+    describe('Today \'s weather view', function () {
+        var view;
+    
+        beforeEach(function () {
+            view = new TodaysWeatherView();
+            view.render();
+        });
+    
+        it('creates a container for the weather right now', function () {
+            expect(view.el.id).toBe('right-now');
+        });
+    
+        it('has a header element', function () {
+            expect(view.el.querySelector('h1').innerText).toBe('London Right Now');
+        });
+    });
+    
+To make the test pass, let's create a helper function called `header` which calls the templating engine and then we inject the result into the `el` element we created previously using `jQuery`:
+
+    'use strict';
+    
+    var TodaysWeatherView = Backbone.View.extend({
+        tagName: 'div',
+        id: 'right-now',
+        header: _.template('<h1>London Right Now</h1>'),
+        render: function() {
+            this.$el.html(this.header());
+            return this;
+        }
+    });
+    
+    module.exports = TodaysWeatherView;
+    
+So that's our static approach done, let's make this data driven by using a model attribute. `London` in our example is the part of the string that is variable and dynamic. If you recall we created a model with a `location` attribute, which is perfect for this. So let's amend our `header` helper method in our `view` code a little to use interpolation (`<%- location %>`). Furthermore we will need to pass in the value to that helper method (`this.model.get('location')`):
+
+    'use strict';
+    
+    var TodaysWeatherView = Backbone.View.extend({
+        tagName: 'div',
+        id: 'right-now',
+        header: _.template('<h1><%- location %> Right Now</h1>'),
+        render: function() {
+            this.$el.html(this.header({location: this.model.get('location')}));
+            return this;
+        }
+    });
+    
+    module.exports = TodaysWeatherView;
+    
+When you save the file you will see that our tests now fail, because `this.model` is undefined. So we need to fix how instantiate the view. We do this by passing in a model. Now we don't need to actually use the model we created, we can use a `Backbone.Model` and set a `location` attribute and give it a value. When writing unit tests we generally want to limit the interaction between objects to a minimum, and while we could have used other tools to `mock` our model, in this case the basic `Backbone.Model` is good enough for now. We will discuss `mock`s, `stub`s and `fake`s later on.
+
+    'use strict';
+    
+    var TodaysWeatherView = require('weatherly/js/view/TodaysWeather');
+    
+    describe('Today \'s weather view', function () {
+        var view;
+    
+        beforeEach(function () {
+            var model = new Backbone.Model({location: 'London'});
+            view = new TodaysWeatherView({model: model});
+            view.render();
+        });
+    
+        it('creates a container for the weather right now', function () {
+            expect(view.el.id).toBe('right-now');
+        });
+    
+        it('has a header element', function () {
+            expect(view.el.querySelector('h1').innerText).toBe('London Right Now');
+        });
+    });
+    
+Test should be green again, so we let's continue by adding the next few elements for that area of the display:
+
+    'use strict';
+
+    var TodaysWeatherView = require('weatherly/js/view/TodaysWeather');
+
+    describe('Today \'s weather view', function () {
+        var view;
+
+        beforeEach(function () {
+            var model = new Backbone.Model({location: 'London', temperature: '14', currentWeatherConditions: 'Clear', apparentTemperature: '14'});
+            view = new TodaysWeatherView({model: model});
+            view.render();
+        });
+
+        it('creates a container for the weather right now', function () {
+            expect(view.el.id).toBe('right-now');
+        });
+
+        it('has a header element', function () {
+            expect(view.el.querySelector('h1').innerText).toBe('London Right Now');
+        });
+
+        it('has a temperature element', function () {
+            expect(view.el.querySelector('p.temperature').innerText).toBe('14 degrees');
+        });
+
+        it('has a feels-like element', function () {
+            expect(view.el.querySelector('p.feels-like').innerText).toBe('Clear - feels like 14 degrees');
+        });
+    });
+
+And now the code to make this pass: 
+
+    'use strict';
+
+    var TodaysWeatherView = Backbone.View.extend({
+        tagName: 'div',
+        id: 'right-now',
+        header: _.template('<h1><%- location %> Right Now</h1>'),
+        temperature: _.template('<p class="temperature"><%- temperature %> degrees</p>'),
+        feelsLike: _.template('<p class="feels-like"><%- currentWeatherConditions %> - feels like <%- apparentTemperature %> degrees</p>'),
+        render: function() {
+            var header = this.header({location: this.model.get('location')}),
+                temperature = this.temperature({temperature: this.model.get('temperature')}),
+                feelsLike = this.feelsLike({currentWeatherConditions: this.model.get('currentWeatherConditions'), apparentTemperature: this.model.get('apparentTemperature')});
+
+            this.$el.append(header).append(temperature).append(feelsLike);
+            return this;
+        }
+    });
+
+    module.exports = TodaysWeatherView;
+    
+We are now in a good spot, we are now in a position to render all of the content we displayed inside of our `jumbotron` element. We are not quite done yet, it's once again time to improve our code. As a rule you shouldn't mix your JS with HTML let's extract all of the templates, starting with our header, let's create a `template` folder and add the following to a `header.js` file:
+
+    'use strict';
+    
+    var header = _.template('<h1><%- location %> Right Now</h1>');
+    
+    module.exports = header;
+    
+The other two follow the same pattern, here is `temperature.js`:
+    
+    'use strict';
+
+	var temperature = _.template('<p class="temperature"><%- temperature %> degrees</p>');
+
+	module.exports = temperature;
+	
+And lastly `feelsLike.js`: 
+
+    'use strict';
+    
+    var feelsLike = _.template('<p class="feels-like"><%- currentWeatherConditions %> - feels like <%- apparentTemperature %> degrees</p>');
+    
+    module.exports = feelsLike;
+
+With that we can require them into our view and assign them to the context of the view by adding an `initialize` method: 
+
+    'use strict';
+    
+    var header = require('weatherly/js/templates/header'),
+        temperature = require('weatherly/js/templates/temperature'),
+        feelsLike = require('weatherly/js/templates/feelsLike');
+    
+    var TodaysWeatherView = Backbone.View.extend({
+        initialize: function() {
+            this.header = header;
+            this.temperature = temperature;
+            this.feelsLike = feelsLike;
+        },
+        tagName: 'div',
+        id: 'right-now',
+        render: function() {
+            this.$el.append(this.header({location: this.model.get('location')}))
+                .append(this.temperature({temperature: this.model.get('temperature')}))
+                .append(this.feelsLike({currentWeatherConditions: this.model.get('currentWeatherConditions'), apparentTemperature: this.model.get('apparentTemperature')}));
+            return this;
+        }
+    });
+    
+    module.exports = TodaysWeatherView;
+    
+You might be tempted to pass in the model as an argument to the templates to keep the number of arguments down, but that's not a good design. If you do that the templates all of a sudden need to have knowledge about an object external to them. In other words if you passed in model, then the template would need to know about the `get` method on the object and the actual attribute name, e.g. `location`. Furthermore you would have coupled the template to `BackBone.Model`
+
+__TODO fix duplcation in temp + 'degrees'__
+__TODO can we make render open closed?__
+
+At this stage let's commit all of our work, but before we do we need to update .jshintrc so that it includes `_` (a.ka. `Underscore.js`), otherwise we would have linting errors on commit:
+    
+    {
+        "strict": true,
+        "unused": true,
+        "undef": true,
+        "camelcase": true,
+        "curly": true,
+        "eqeqeq": true,
+        "forin": true,
+        "indent": 4,
+        "newcap": true,
+        "trailing": true,
+        "maxdepth": 2,
+        "browser": true,
+        "devel": true,
+        "node": true,
+        "quotmark": true,
+    
+        "globals": {
+            "sinon": false,
+            "define": false,
+            "beforeEach": false,
+            "afterEach": false,
+            "expect": false,
+            "describe": false,
+            "it": false,
+            "xdescribe": false,
+            "ddescribe": false,
+            "xit": false,
+            "iit": false,
+            "jasmine": false,
+            "_": false,
+            "Backbone": false
+        }
+    }
+
+Right let's commit:
+
+	$ git add .
+	$ git commit -m "Hero content uses BackBone.View and templaes to render"
+
+
+## The Route
+The glue that binds our Model to our View
+
+## The Application
