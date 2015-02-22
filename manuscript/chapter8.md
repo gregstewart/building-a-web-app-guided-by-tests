@@ -44,6 +44,9 @@ Our first task task will be to display the current weather conditions for our vi
  	
 	The temperature should be displayed in either Fahrenheit or Celsius depending on the location. The following coutries use Fahrenheit: the Bahamas, Belize, the Cayman Islands, Palau and the United States and its associated territories of American Samoa and the U.S. Virgin Islands (source http://en.wikipedia.org/wiki/Fahrenheit).
 
+Visually we will be working with this area of the UI:
+
+![Rendered HTML hosted by our Connect server](images/Screenshot 2015-02-22 13.37.26.png)
 
 ##The Model##
 For our view we require a few things:
@@ -396,7 +399,13 @@ This conversion should also take place if either value changes:
     module.exports = TodaysWeatherForecast;
     
 #### Red, Green, Refactor ####
-There are few improvements we can make to this code, now that all of our tests are passing and our coverage looks solid, it's time for the refactor phase:
+There are few improvements we can make to this code, now that all of our tests are passing and our coverage looks solid, it's time for the refactor phase. What is refactoring? Martin Fowler [put it best in his book](http://refactoring.com/):
+
+> …is a disciplined technique for restructuring an existing body of code, altering its internal structure without changing its external behavior.
+
+> Its heart is a series of small behavior preserving transformations. Each transformation (called a “refactoring”) does little, but a sequence of transformations can produce a significant restructuring. Since each refactoring is small, it’s less likely to go wrong. The system is kept fully working after each small refactoring, reducing the chances that a system can get seriously broken during the restructuring.
+
+Let's start by applying the `extract method` technique ([see here for an example](http://refactoring.com/catalog/extractMethod.html)):
 
 	var TodaysWeatherForecast = Backbone.Model.extend({
         initialize: function () {
@@ -429,7 +438,7 @@ There are few improvements we can make to this code, now that all of our tests a
 
     module.exports = TodaysWeatherForecast;
     
-I was able to extract two methods, one for figuring out whether the country we are in wants the temperature in Celsius or Fahrenheit (`shouldConvertToCelsius`) and another to do the actual conversion from Fahrenheit to Celsius (`convertToCelsius`). The upshot of this step is that  the `convertTemperature` is easier to read and simpler to understand.
+Two methods were extracted, one for figuring out whether the country we are in wants the temperature in Celsius or Fahrenheit (`shouldConvertToCelsius`) and another to do the actual conversion from Fahrenheit to Celsius (`convertToCelsius`). The upshot of this step is that  the `convertTemperature` is easier to read and simpler to understand.
     
 ###Where another requirement emerges
 Just as you think you are done, your product owner points out the following scenario: "What happens if the location changes? What if travelled from the US to the UK? Shouldn't the temperature be updated as well?" We should deal with this and here are the tests to cover this:
@@ -542,7 +551,7 @@ At this stage we can once again do some more refactoring. The functions for conv
     
     module.exports = TemperatureConverter;
     
-Next let's replace the code in those functions with calls to the API exposed by our new object:
+This technique is called `extract class` ([see here for an example](http://refactoring.com/catalog/extractClass.html)). Next let's replace the code in those functions with calls to the API exposed by our new object:
 
     'use strict';
     
@@ -629,7 +638,7 @@ Test should still be passing, so we can continue with our refactoring by replaci
     
     module.exports = TodaysWeatherForecast;
     
-There's one more thing we can improve on in this object. Nested `if` statements are a problem, hard to read and hard to reason about. We can improve the readability of the `countryHasChanged` function by implemeting a guard clause:
+There's one more thing we can improve on in this object. Nested `if` statements are a problem, hard to read and hard to reason about. We can improve the readability of the `countryHasChanged` function by implemeting [a guard clause](http://refactoring.com/catalog/replaceNestedConditionalWithGuardClauses.html):
 
     countryHasChanged: function () {
         if (this._previousAttributes.country === this.get('country')) {
@@ -952,7 +961,12 @@ With that we can require them into our view and assign them to the context of th
     
 You might be tempted to pass in the model as an argument to the templates to keep the number of arguments down, but that's not a good design. If you do that the templates all of a sudden need to have knowledge about an object external to them. In other words if you passed in model, then the template would need to know about the `get` method on the object and the actual attribute name, e.g. `location`. Furthermore you would have coupled the template to `BackBone.Model`
 
-__TODO fix duplication in temp + 'degrees' template__
+We could also fix duplication in our temperature templates, however I am going to hold off for a little longer. To paraphrase [Sandy Metz](http://www.sandimetz.com/):
+
+> fixing duplication is easier than fixing the wrong absraction
+
+So let's wait until we have dealt with all of the ways we display temperature in our UI.
+
 __TODO can we make render open closed?__
 
 At this stage let's commit all of our work, but before we do we need to update .jshintrc so that it includes `_` (a.ka. `Underscore.js`), otherwise we would have linting errors on commit:
@@ -998,7 +1012,86 @@ Right let's commit:
 	$ git commit -m "Hero content uses BackBone.View and templaes to render"
 
 
-## The Route
-The glue that binds our Model to our View
+## The Router
+Ok View and Model are done, time to tackle the glue that binds our Model to our View, a `BackBone.Router` ([documentation](http://backbonejs.org/#Router)). Our tests fall into two categories: routes and router. The routes part of the tests wil ensure that when a certain route is invoked by the browser, it calls the right binding. The router part will deal with making sure the correct code is executed. Because we will be testing the interplay of our objects and the router intreracts with the `Window` object we will be stubbing our View, Model and Window objects. To that end we'll use a library called [Sinon.js](http://sinonjs.org/). Thankfully there's a [module for karma](https://www.npmjs.com/package/karma-sinon), that we can install:
+
+	$ npm install karma-sinon --save-dev
+	
+Next amend the Karma configuration to use that framework:
+
+	...
+	// frameworks to use
+   	// available frameworks: https://npmjs.org/browse/keyword/karma-adapter
+    frameworks: ['jasmine', 'commonjs', 'sinon'],        
+	...
+	
+_What are Spies, Stubs and Mocks_
+	
+### Routes
+
+Test code: 
+
+    'use strict';
+    
+    var ApplicationRouter = require('weatherly/js/ApplicationRouter.js');
+    
+    describe('Application Routes', function () {
+        beforeEach(function () {
+            this.router = new ApplicationRouter();
+            this.indexRouteStub = sinon.stub(this.router, 'index');
+    
+            Backbone.history.start({silent: true, pushState: true});
+            this.router.navigate('elsewhere', {trigger: true});
+        });
+    
+        afterEach(function () {
+            Backbone.history.stop();
+            this.indexRouteStub.restore();
+            this.router.navigate('elsewhere', {trigger: true});
+        });
+    
+        describe('index route', function () {
+    
+            it('/ - route exists and points to the right method', function () {
+                expect(this.router.routes['']).toEqual('index');
+            });
+    
+            it('calls the index route by navigating to /', function () {
+                var self = this,
+                    pushStateStub = sinon.stub(window.history, 'pushState', function (data, title, url) {
+                        expect(url).toEqual('/');
+                        self.router.index();
+                    });
+    
+                this.router.navigate('/', {trigger: true});
+                expect(pushStateStub.called).toBe(true);
+                expect(this.indexRouteStub.called).toBe(true);
+    
+                pushStateStub.restore();
+            });
+        });
+    });
+    
+Here we stub out two things, the `window.hostory.pushState` function and the function that responds `index` route. For this particular set of tests we are checking two things, we have configured the correct route for our default app state and secondly when `triggered` we call the associated `index` method. We are not interested in what happens when the method is called and therefore we can stub it.  
+    
+Code to make this test pass: 
+
+    'use strict';
+    
+    var ApplicationRouter = Backbone.Router.extend({
+        routes: {
+            '': 'index',
+        },
+
+        index: function () {
+        },
+    
+    });
+    
+    module.exports = ApplicationRouter;
+    
+### Router
+
+
 
 ## The Application
