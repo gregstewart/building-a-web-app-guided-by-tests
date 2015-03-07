@@ -1091,7 +1091,53 @@ Code to make this test pass:
     module.exports = ApplicationRouter;
     
 ### Router
+When it comes to testing our actual router code, the testing story becomes interesting. The typical implementation for this would look something like this:
 
+    index: function () {
+        var model = new TodaysWeatherForecast(),
+              view = new TodaysWeatherForecastView({model: model});
+        
+         view.render();
+    }
+
+Nice and straightforward, however not testable. Well not quite true, you could add a fixture to your test code and then assert that the element built by our render function has been injected into the fixture. That's a valid test, however at this stage of the application I am not quite ready to run such a comprehensive test, such an integration test. I would still like to focus the tests at the `Unit level`. Why is this not testable? Before answering maybe the better question would be what would we test? The thing to test in my mind is that when we call index(), we should view.render to have been called. Typically you would use a `Spy` to achieve that. [What is a spy](http://sinonjs.org/docs/#spies)?
+
+> A test spy is a function that records arguments, return value, the value of this and exception thrown (if any) for all its calls. A test spy can be an anonymous function or it can wrap an existing function.
+
+With this implementation there's no way for our test code to get a hold of the instance created by this code and attach a spy to the View's `render` method and then assert it was called. So we need to find a way to inject some objects that we can create and set up spies. 
+
+### Enter the builder
+Our builder object is a kind of [Factory](http://en.wikipedia.org/wiki/Factory_method_pattern#Definition) that will help us create the `View` object and thus allow us to inject some fake objects. At this stage some folks will raise their hands in the air and mutter something about adding code for test purposes to our production code. The method for injecting code is not great, but I can easily make a case for this Builder in my Router. Why should my router have knowledge about the Model and the View? Why should it know how these are composed in order to their job? By adding this Builder object not only are decoupling our the View/Model relationship from the Router, but we are also adding a seam for our test code. So we solve two issues in one go and that I am Ok with.
+
+    'use strict';
+    
+    var TodaysWeatherForecast = require('weatherly/js/model/TodaysWeatherForecast.js'),
+        TodaysWeatherForecastView = require('weatherly/js/view/TodaysWeatherForecast.js');
+    
+    module.exports = (function () {
+        var _view;
+    
+        function todaysWeatherForecast () {
+            var model = new TodaysWeatherForecast();
+    
+            return new TodaysWeatherForecastView({model: model});
+        }
+    
+        return {
+            build: {
+                todaysWeatherForecastView: function () {
+                    if(_view) {
+                        return _view;
+                    }
+    
+                    return todaysWeatherForecast();
+                }
+            },
+            _setView: function (view) {
+                _view = view;
+            }
+        };
+    })();
 
 
 ## The Application
